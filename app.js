@@ -61,18 +61,42 @@ const traitMeta = {
   },
 };
 
-const appIdentity = {
-  name: "내 이상형을 돌려도!",
-  maker: "KMokky",
-};
-
-const apiConfig = {
-  imageEndpoint: "/api/generate-image",
-  saveEndpoint: "/api/save-result",
-  directSupabase: {
-    url: "https://vvqpajzjkcqxpvsptqvr.supabase.co",
-    publishableKey: "sb_publishable_-12zCYO_YoB3Bp5cB9LvFA_DlOjxmid",
-    table: "ideal_type_results",
+const preferenceMeta = {
+  gender: {
+    woman: {
+      label: "여성",
+      prompt: "adult Korean woman",
+    },
+    man: {
+      label: "남성",
+      prompt: "adult Korean man",
+    },
+    any: {
+      label: "성별 상관없음",
+      prompt: "gender-neutral Korean adult",
+    },
+  },
+  ageRange: {
+    "20s": {
+      label: "20대",
+      prompt: "in their 20s",
+    },
+    "30s": {
+      label: "30대",
+      prompt: "in their 30s",
+    },
+    "40s": {
+      label: "40대",
+      prompt: "in their 40s",
+    },
+    "50s": {
+      label: "50대 이상",
+      prompt: "in their 50s or older",
+    },
+    any: {
+      label: "나이대 상관없음",
+      prompt: "",
+    },
   },
 };
 
@@ -345,6 +369,8 @@ const state = {
   answers: [],
   started: false,
   resultToken: 0,
+  targetGender: "any",
+  targetAgeRange: "20s",
 };
 
 const els = {
@@ -352,6 +378,7 @@ const els = {
   questionScreen: document.querySelector("#questionScreen"),
   resultScreen: document.querySelector("#resultScreen"),
   modeButtons: [...document.querySelectorAll(".mode-button")],
+  preferenceButtons: [...document.querySelectorAll(".preference-button")],
   startButton: document.querySelector("#startButton"),
   sampleButton: document.querySelector("#sampleButton"),
   questionCategory: document.querySelector("#questionCategory"),
@@ -368,10 +395,11 @@ const els = {
   resultSummary: document.querySelector("#resultSummary"),
   traitList: document.querySelector("#traitList"),
   imagePrompt: document.querySelector("#imagePrompt"),
-  saveStatus: document.querySelector("#saveStatus"),
   imageStatus: document.querySelector("#imageStatus"),
   portraitCanvas: document.querySelector("#portraitCanvas"),
   downloadButton: document.querySelector("#downloadButton"),
+  sharePortraitButton: document.querySelector("#sharePortraitButton"),
+  sharePlacardButton: document.querySelector("#sharePlacardButton"),
   restartButton: document.querySelector("#restartButton"),
   restartTopButton: document.querySelector("#restartTopButton"),
   copyPromptButton: document.querySelector("#copyPromptButton"),
@@ -394,7 +422,6 @@ function setMode(mode) {
   state.started = false;
   state.resultToken += 1;
   setImageStatus("idle");
-  setSaveStatus("idle");
   els.modeButtons.forEach((button) => {
     const active = Number(button.dataset.mode) === mode;
     button.classList.toggle("active", active);
@@ -402,6 +429,23 @@ function setMode(mode) {
   });
   showScreen("start");
   renderProgress();
+}
+
+function setPreference(preference, value) {
+  if (preference === "gender" && preferenceMeta.gender[value]) {
+    state.targetGender = value;
+  }
+  if (preference === "ageRange" && preferenceMeta.ageRange[value]) {
+    state.targetAgeRange = value;
+  }
+
+  els.preferenceButtons
+    .filter((button) => button.dataset.preference === preference)
+    .forEach((button) => {
+      const active = button.dataset.value === value;
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-checked", String(active));
+    });
 }
 
 function startQuiz() {
@@ -417,7 +461,6 @@ function resetQuiz() {
   state.answers = [];
   state.started = false;
   state.resultToken += 1;
-  setSaveStatus("idle");
   setImageStatus("idle");
   showScreen("start");
   renderProgress();
@@ -563,12 +606,17 @@ function makeSummary(top) {
 
 function makePrompt(top) {
   const promptParts = top.map((trait) => traitMeta[trait.key].prompt);
-  return `fictional adult, gender-neutral Korean webtoon-inspired fashion portrait, ${promptParts.join(", ")}, clean editorial composition, pink accent logo mood, expressive eyes, polished digital illustration, soft daylight, high detail`;
+  return `fictional ${makeTargetPrompt()}, photorealistic Korean studio portrait, ${promptParts.join(", ")}, natural facial proportions, realistic skin texture, tasteful fashion styling, soft daylight, shallow depth of field, no readable text, synthetic person`;
+}
+
+function makeTargetPrompt() {
+  const gender = preferenceMeta.gender[state.targetGender] || preferenceMeta.gender.any;
+  const ageRange = preferenceMeta.ageRange[state.targetAgeRange] || preferenceMeta.ageRange["20s"];
+  return [gender.prompt, ageRange.prompt].filter(Boolean).join(" ");
 }
 
 function showResult() {
-  const token = state.resultToken + 1;
-  state.resultToken = token;
+  state.resultToken += 1;
   const profile = buildProfile();
   els.resultTitle.textContent = profile.title;
   els.resultSummary.textContent = profile.summary;
@@ -576,81 +624,7 @@ function showResult() {
   renderTraitList(profile.scores);
   drawPortrait(profile);
   showScreen("result");
-  saveResult(profile);
-  generateAiPortrait(profile, token);
-}
-
-async function generateAiPortrait(profile, token) {
-  setImageStatus("generating");
-
-  if (window.location.protocol === "file:") {
-    setImageStatus("fallback", "Vercel 배포 또는 로컬 서버에서 AI 이미지 API가 활성화돼요. 지금은 캔버스 이미지로 보여줘요.");
-    return;
-  }
-
-  try {
-    const response = await fetch(apiConfig.imageEndpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        prompt: profile.prompt,
-        title: profile.title,
-        traits: profile.top.map((trait) => traitMeta[trait.key].label),
-        scores: profile.scores,
-        mode: state.mode,
-      }),
-    });
-
-    const data = await response.json().catch(() => ({}));
-
-    if (!response.ok || !data.imageDataUrl) {
-      const message = data.message || "AI 이미지 API 응답을 확인해야 해요. 지금은 캔버스 이미지로 보여줘요.";
-      throw new Error(message);
-    }
-
-    if (token !== state.resultToken) return;
-
-    await paintGeneratedPortrait(data.imageDataUrl, profile);
-    if (token !== state.resultToken) return;
-    setImageStatus("generated", `OpenAI ${data.model || "image model"}로 AI 이미지를 생성했어요.`);
-  } catch (error) {
-    if (token !== state.resultToken) return;
-    console.warn("AI image generation fell back to canvas:", error);
-    setImageStatus("fallback", error.message || "AI 이미지 생성 대신 캔버스 이미지로 보여줘요.");
-  }
-}
-
-async function paintGeneratedPortrait(imageDataUrl, profile) {
-  const image = await loadImage(imageDataUrl);
-  const canvas = els.portraitCanvas;
-  const ctx = canvas.getContext("2d");
-  const width = canvas.width;
-  const height = canvas.height;
-  const scale = Math.max(width / image.width, height / image.height);
-  const drawWidth = image.width * scale;
-  const drawHeight = image.height * scale;
-  const drawX = (width - drawWidth) / 2;
-  const drawY = (height - drawHeight) / 2;
-
-  ctx.clearRect(0, 0, width, height);
-  ctx.drawImage(image, drawX, drawY, drawWidth, drawHeight);
-
-  const shade = ctx.createLinearGradient(0, height * 0.48, 0, height);
-  shade.addColorStop(0, "rgba(255,255,255,0)");
-  shade.addColorStop(1, "rgba(255,249,252,0.86)");
-  ctx.fillStyle = shade;
-  ctx.fillRect(0, 0, width, height);
-
-  drawCaption(ctx, profile.title, profile.top, width, height);
-}
-
-function loadImage(src) {
-  return new Promise((resolve, reject) => {
-    const image = new Image();
-    image.onload = () => resolve(image);
-    image.onerror = reject;
-    image.src = src;
-  });
+  setImageStatus("generated", "추가 과금 없이 브라우저에서 가상의 성인 사진 스타일 이미지를 만들었어요.");
 }
 
 function renderTraitList(scores) {
@@ -675,7 +649,9 @@ function drawPortrait(profile) {
   const height = canvas.height;
   const scores = profile.scores;
   const topKeys = profile.top.map((trait) => trait.key);
-  const seed = hashAnswers(state.answers.join("-") + topKeys.join("-"));
+  const seed = hashAnswers(
+    `${state.answers.join("-")}-${topKeys.join("-")}-${state.targetGender}-${state.targetAgeRange}`,
+  );
   const rand = mulberry32(seed);
   const primary = traitMeta[topKeys[0]].color;
   const secondary = traitMeta[topKeys[1]].color;
@@ -683,16 +659,16 @@ function drawPortrait(profile) {
 
   ctx.clearRect(0, 0, width, height);
   const bg = ctx.createLinearGradient(0, 0, width, height);
-  bg.addColorStop(0, mix("#ffffff", primary, 0.28));
-  bg.addColorStop(0.52, mix("#ffffff", secondary, 0.2));
-  bg.addColorStop(1, mix("#ffffff", accent, 0.25));
+  bg.addColorStop(0, mix("#f7f2ef", primary, 0.08));
+  bg.addColorStop(0.52, "#ede6e2");
+  bg.addColorStop(1, mix("#d8d0cc", secondary, 0.08));
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, width, height);
 
-  drawBackdrop(ctx, width, height, primary, secondary, accent);
+  drawBackdrop(ctx, width, height, primary, secondary, accent, rand);
 
   const centerX = width / 2;
-  const faceY = 442;
+  const faceY = 416;
   const warmth = scores.warmth;
   const humor = scores.humor;
   const intellect = scores.intellect;
@@ -704,31 +680,41 @@ function drawPortrait(profile) {
   const energy = scores.energy;
   const sincerity = scores.sincerity;
 
-  const skin = mix("#f5c4aa", "#ffe1d7", Math.min(0.55, warmth / 45));
+  const skinPalette = ["#f1c2a5", "#e5ad8f", "#d89b78", "#c98768", "#f0d0b8"];
+  const skin = mix(skinPalette[Math.floor(rand() * skinPalette.length)], "#fff4ea", Math.min(0.26, warmth / 110));
   const hairPalette = [
-    "#2a2028",
-    "#5a352f",
-    "#754532",
-    "#b15a64",
-    "#303a52",
-    "#6d483f",
+    "#171314",
+    "#2a1f1c",
+    "#3c2922",
+    "#53342a",
+    "#1f2430",
+    "#684438",
   ];
   const hairColor = hairPalette[Math.floor(rand() * hairPalette.length)];
-  const outfitColor = mix(primary, secondary, 0.38);
-  const outfitAccent = mix("#ffffff", accent, 0.35);
-  const faceWidth = 250 + Math.min(34, steadiness * 1.3) - Math.min(18, adventure * 0.7);
-  const faceHeight = 322 + Math.min(26, sincerity * 0.9);
-  const hairLength = 90 + Math.min(105, aesthetics * 1.6 + romance * 1.4) - Math.min(42, energy + adventure);
-  const smile = Math.min(1, (warmth + humor + romance) / 72);
+  const outfitColor = mix(mix(primary, "#24212b", 0.5), secondary, 0.18);
+  const outfitAccent = mix("#ffffff", accent, 0.18);
+  const genderFaceOffset = state.targetGender === "man" ? 18 : state.targetGender === "woman" ? -8 : 0;
+  const genderHairOffset = state.targetGender === "woman" ? 42 : state.targetGender === "man" ? -32 : 0;
+  const ageMaturity = {
+    "20s": 0,
+    "30s": 10,
+    "40s": 20,
+    "50s": 30,
+    any: 6,
+  }[state.targetAgeRange] ?? 0;
+  const faceWidth = 230 + genderFaceOffset + Math.min(28, steadiness * 1.05) - Math.min(14, adventure * 0.55);
+  const faceHeight = 318 + ageMaturity * 0.3 + Math.min(20, sincerity * 0.65);
+  const hairLength = 72 + genderHairOffset + Math.min(92, aesthetics * 1.25 + romance * 1.05) - Math.min(34, energy + adventure);
+  const smile = Math.min(1, (warmth + humor + romance) / 84);
   const eyeLift = Math.min(18, humor * 0.7 + energy * 0.45);
   const browCalm = Math.min(14, steadiness * 0.45 + intellect * 0.35);
 
-  drawShoulders(ctx, centerX, 845, outfitColor, outfitAccent, topKeys);
-  drawNeck(ctx, centerX, 664, skin);
-  drawHair(ctx, centerX, faceY, faceWidth, faceHeight, hairLength, hairColor, topKeys);
+  drawShoulders(ctx, centerX, 812, outfitColor, outfitAccent, topKeys);
+  drawNeck(ctx, centerX, 640, skin);
+  drawHair(ctx, centerX, faceY, faceWidth, faceHeight, hairLength, hairColor, topKeys, rand);
   drawEars(ctx, centerX, faceY + 28, faceWidth, skin, aesthetics, romance);
-  drawFace(ctx, centerX, faceY, faceWidth, faceHeight, skin);
-  drawEyes(ctx, centerX, faceY, eyeLift, browCalm, hairColor, intellect, sincerity);
+  drawFace(ctx, centerX, faceY, faceWidth, faceHeight, skin, ageMaturity, rand);
+  drawEyes(ctx, centerX, faceY, eyeLift, browCalm, hairColor, intellect, sincerity, rand);
   drawNose(ctx, centerX, faceY + 60, skin);
   drawMouth(ctx, centerX, faceY + 128, smile, primary);
   drawCheeks(ctx, centerX, faceY + 82, warmth, romance);
@@ -746,42 +732,51 @@ function drawPortrait(profile) {
     drawCollarPin(ctx, centerX + 96, 822, accent);
   }
 
-  drawCaption(ctx, profile.title, profile.top, width, height);
+  drawPhotoFinish(ctx, width, height, rand);
 }
 
-function drawBackdrop(ctx, width, height, primary, secondary, accent) {
+function drawBackdrop(ctx, width, height, primary, secondary, accent, rand) {
   ctx.save();
-  ctx.globalAlpha = 0.18;
-  ctx.strokeStyle = primary;
-  ctx.lineWidth = 2;
-  for (let x = -height; x < width; x += 58) {
+  const glow = ctx.createRadialGradient(width * 0.34, height * 0.22, 80, width * 0.4, height * 0.3, 620);
+  glow.addColorStop(0, "rgba(255,255,255,0.72)");
+  glow.addColorStop(0.38, "rgba(255,255,255,0.28)");
+  glow.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, 0, width, height);
+
+  for (let i = 0; i < 22; i += 1) {
+    const radius = 18 + rand() * 74;
+    const x = rand() * width;
+    const y = 70 + rand() * (height - 190);
+    const bokeh = ctx.createRadialGradient(x, y, 0, x, y, radius);
+    bokeh.addColorStop(0, mix(primary, "#ffffff", 0.72));
+    bokeh.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.globalAlpha = 0.08 + rand() * 0.08;
+    ctx.fillStyle = bokeh;
     ctx.beginPath();
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x + height, height);
-    ctx.stroke();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.fill();
   }
 
-  ctx.globalAlpha = 0.24;
-  ctx.strokeStyle = secondary;
-  ctx.lineWidth = 4;
-  for (let i = 0; i < 18; i += 1) {
+  ctx.globalAlpha = 0.14;
+  ctx.strokeStyle = mix(secondary, accent, 0.45);
+  ctx.lineWidth = 1.5;
+  for (let i = 0; i < 9; i += 1) {
     ctx.beginPath();
-    ctx.arc(width / 2, 418, 150 + i * 18, -0.34, Math.PI + 0.18);
+    ctx.moveTo(76 + i * 96, 0);
+    ctx.lineTo(16 + i * 96, height);
     ctx.stroke();
   }
-
-  ctx.globalAlpha = 0.4;
-  ctx.fillStyle = accent;
-  roundedRect(ctx, 92, 88, 154, 16, 8);
-  ctx.fill();
-  roundedRect(ctx, width - 272, height - 162, 178, 16, 8);
-  ctx.fill();
   ctx.restore();
 }
 
 function drawShoulders(ctx, x, y, color, accent, topKeys) {
   ctx.save();
-  ctx.fillStyle = color;
+  const jacket = ctx.createLinearGradient(x - 310, y - 90, x + 310, y + 250);
+  jacket.addColorStop(0, mix(color, "#ffffff", 0.16));
+  jacket.addColorStop(0.52, color);
+  jacket.addColorStop(1, mix(color, "#111111", 0.24));
+  ctx.fillStyle = jacket;
   ctx.beginPath();
   ctx.moveTo(x - 285, y + 210);
   ctx.bezierCurveTo(x - 235, y - 20, x - 115, y - 72, x, y - 72);
@@ -789,23 +784,26 @@ function drawShoulders(ctx, x, y, color, accent, topKeys) {
   ctx.closePath();
   ctx.fill();
 
-  ctx.fillStyle = accent;
+  const shirt = ctx.createLinearGradient(x, y - 90, x, y + 90);
+  shirt.addColorStop(0, "rgba(255,255,255,0.94)");
+  shirt.addColorStop(1, accent);
+  ctx.fillStyle = shirt;
   ctx.beginPath();
-  ctx.moveTo(x - 88, y - 62);
-  ctx.lineTo(x, y + 26);
-  ctx.lineTo(x + 88, y - 62);
-  ctx.quadraticCurveTo(x, y - 18, x - 88, y - 62);
+  ctx.moveTo(x - 96, y - 68);
+  ctx.lineTo(x, y + 34);
+  ctx.lineTo(x + 96, y - 68);
+  ctx.quadraticCurveTo(x, y - 26, x - 96, y - 68);
   ctx.fill();
 
-  ctx.strokeStyle = "rgba(255,255,255,0.48)";
-  ctx.lineWidth = 8;
+  ctx.strokeStyle = "rgba(255,255,255,0.22)";
+  ctx.lineWidth = 10;
   ctx.beginPath();
-  ctx.moveTo(x - 212, y + 48);
-  ctx.quadraticCurveTo(x - 112, y + 18, x - 34, y + 68);
+  ctx.moveTo(x - 220, y + 42);
+  ctx.quadraticCurveTo(x - 112, y + 16, x - 32, y + 76);
   ctx.stroke();
   ctx.beginPath();
-  ctx.moveTo(x + 212, y + 48);
-  ctx.quadraticCurveTo(x + 112, y + 18, x + 34, y + 68);
+  ctx.moveTo(x + 220, y + 42);
+  ctx.quadraticCurveTo(x + 112, y + 16, x + 32, y + 76);
   ctx.stroke();
 
   if (topKeys.includes("adventure") || topKeys.includes("energy")) {
@@ -823,18 +821,28 @@ function drawShoulders(ctx, x, y, color, accent, topKeys) {
 
 function drawNeck(ctx, x, y, skin) {
   ctx.save();
+  ctx.fillStyle = "rgba(63,36,31,0.12)";
+  ctx.beginPath();
+  ctx.ellipse(x, y - 36, 86, 36, 0, 0, Math.PI * 2);
+  ctx.fill();
+
   const grad = ctx.createLinearGradient(x - 72, y - 40, x + 72, y + 122);
-  grad.addColorStop(0, mix(skin, "#ffffff", 0.14));
-  grad.addColorStop(1, mix(skin, "#d9907c", 0.18));
+  grad.addColorStop(0, mix(skin, "#ffffff", 0.08));
+  grad.addColorStop(0.52, skin);
+  grad.addColorStop(1, mix(skin, "#9b584a", 0.16));
   ctx.fillStyle = grad;
-  roundedRect(ctx, x - 72, y - 70, 144, 178, 64);
+  roundedRect(ctx, x - 64, y - 76, 128, 180, 54);
   ctx.fill();
   ctx.restore();
 }
 
-function drawHair(ctx, x, y, faceWidth, faceHeight, length, color, topKeys) {
+function drawHair(ctx, x, y, faceWidth, faceHeight, length, color, topKeys, rand) {
   ctx.save();
-  ctx.fillStyle = color;
+  const hairGrad = ctx.createLinearGradient(x - faceWidth, y - faceHeight, x + faceWidth, y + faceHeight + length);
+  hairGrad.addColorStop(0, mix(color, "#ffffff", 0.08));
+  hairGrad.addColorStop(0.42, color);
+  hairGrad.addColorStop(1, mix(color, "#000000", 0.28));
+  ctx.fillStyle = hairGrad;
   ctx.beginPath();
   ctx.moveTo(x - faceWidth * 0.52, y - faceHeight * 0.34);
   ctx.bezierCurveTo(x - faceWidth * 0.66, y - faceHeight * 0.62, x - faceWidth * 0.23, y - faceHeight * 0.88, x + 8, y - faceHeight * 0.78);
@@ -843,13 +851,30 @@ function drawHair(ctx, x, y, faceWidth, faceHeight, length, color, topKeys) {
   ctx.bezierCurveTo(x - faceWidth * 0.68, y + faceHeight * 0.02, x - faceWidth * 0.7, y - faceHeight * 0.12, x - faceWidth * 0.52, y - faceHeight * 0.34);
   ctx.fill();
 
-  ctx.fillStyle = mix(color, "#ffffff", 0.14);
+  ctx.fillStyle = mix(color, "#ffffff", 0.1);
   ctx.beginPath();
   ctx.moveTo(x - 116, y - 130);
   ctx.bezierCurveTo(x - 34, y - 202, x + 74, y - 186, x + 130, y - 74);
   ctx.bezierCurveTo(x + 58, y - 98, x - 12, y - 72, x - 88, y - 18);
   ctx.bezierCurveTo(x - 132, y - 58, x - 154, y - 92, x - 116, y - 130);
   ctx.fill();
+
+  ctx.lineCap = "round";
+  for (let i = 0; i < 70; i += 1) {
+    const side = rand() > 0.5 ? 1 : -1;
+    const startX = x + side * (28 + rand() * faceWidth * 0.46);
+    const startY = y - faceHeight * (0.58 + rand() * 0.2);
+    const endX = startX + side * (16 + rand() * 42);
+    const endY = y + rand() * (faceHeight * 0.42 + length);
+    ctx.globalAlpha = 0.16 + rand() * 0.18;
+    ctx.strokeStyle = rand() > 0.6 ? mix(color, "#ffffff", 0.22) : mix(color, "#000000", 0.12);
+    ctx.lineWidth = 1 + rand() * 2.2;
+    ctx.beginPath();
+    ctx.moveTo(startX, startY);
+    ctx.bezierCurveTo(startX + side * 12, startY + 90, endX - side * 20, endY - 90, endX, endY);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
 
   if (topKeys.includes("independence")) {
     ctx.fillStyle = mix(color, "#ffffff", 0.24);
@@ -879,65 +904,135 @@ function drawEars(ctx, x, y, faceWidth, skin, aesthetics, romance) {
   ctx.restore();
 }
 
-function drawFace(ctx, x, y, faceWidth, faceHeight, skin) {
+function drawFace(ctx, x, y, faceWidth, faceHeight, skin, ageMaturity, rand) {
   ctx.save();
-  const grad = ctx.createLinearGradient(x - faceWidth / 2, y - faceHeight / 2, x + faceWidth / 2, y + faceHeight / 2);
-  grad.addColorStop(0, mix(skin, "#ffffff", 0.2));
-  grad.addColorStop(1, mix(skin, "#dc927f", 0.12));
+  ctx.shadowColor = "rgba(54,32,27,0.18)";
+  ctx.shadowBlur = 32;
+  ctx.shadowOffsetY = 18;
+  const grad = ctx.createRadialGradient(x - faceWidth * 0.2, y - faceHeight * 0.2, 12, x, y + 28, faceHeight * 0.58);
+  grad.addColorStop(0, mix(skin, "#ffffff", 0.28));
+  grad.addColorStop(0.58, skin);
+  grad.addColorStop(1, mix(skin, "#8f4e43", 0.18));
   ctx.fillStyle = grad;
   ctx.beginPath();
-  ctx.ellipse(x, y + 30, faceWidth / 2, faceHeight / 2, 0, 0, Math.PI * 2);
+  ctx.ellipse(x, y + 24, faceWidth / 2, faceHeight / 2, 0, 0, Math.PI * 2);
   ctx.fill();
+
+  ctx.shadowColor = "transparent";
+  ctx.globalAlpha = 0.15;
+  ctx.fillStyle = mix(skin, "#ffffff", 0.45);
+  ctx.beginPath();
+  ctx.ellipse(x - faceWidth * 0.16, y - 18, faceWidth * 0.18, faceHeight * 0.34, -0.28, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.globalAlpha = 0.12;
+  ctx.fillStyle = mix(skin, "#6b342d", 0.22);
+  ctx.beginPath();
+  ctx.ellipse(x + faceWidth * 0.28, y + 42, faceWidth * 0.13, faceHeight * 0.3, 0.18, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.globalAlpha = 0.16;
+  ctx.strokeStyle = mix(skin, "#8b493e", 0.18);
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(x - faceWidth * 0.22, y + faceHeight * 0.37);
+  ctx.quadraticCurveTo(x, y + faceHeight * 0.47, x + faceWidth * 0.22, y + faceHeight * 0.37);
+  ctx.stroke();
+
+  if (ageMaturity > 8) {
+    ctx.globalAlpha = Math.min(0.16, ageMaturity / 180);
+    ctx.strokeStyle = mix(skin, "#7b4339", 0.3);
+    ctx.lineWidth = 1.4;
+    for (let i = 0; i < Math.floor(ageMaturity / 8); i += 1) {
+      const offset = i * 10;
+      ctx.beginPath();
+      ctx.moveTo(x - 78 + rand() * 16, y - 58 + offset);
+      ctx.quadraticCurveTo(x - 42, y - 64 + offset, x - 12, y - 56 + offset);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(x + 14, y - 56 + offset);
+      ctx.quadraticCurveTo(x + 48, y - 64 + offset, x + 82 - rand() * 16, y - 58 + offset);
+      ctx.stroke();
+    }
+  }
+
+  ctx.globalAlpha = 0.08;
+  for (let i = 0; i < 520; i += 1) {
+    const px = x - faceWidth * 0.43 + rand() * faceWidth * 0.86;
+    const py = y - faceHeight * 0.34 + rand() * faceHeight * 0.72;
+    const dx = (px - x) / (faceWidth / 2);
+    const dy = (py - (y + 24)) / (faceHeight / 2);
+    if (dx * dx + dy * dy > 0.88) continue;
+    ctx.fillStyle = rand() > 0.5 ? "rgba(90,50,42,0.34)" : "rgba(255,255,255,0.42)";
+    ctx.fillRect(px, py, 1.4, 1.4);
+  }
   ctx.restore();
 }
 
-function drawEyes(ctx, x, y, lift, calm, hairColor, intellect, sincerity) {
+function drawEyes(ctx, x, y, lift, calm, hairColor, intellect, sincerity, rand) {
   ctx.save();
-  const eyeY = y + 18 - lift * 0.12;
-  const eyeGap = 70;
-  ctx.strokeStyle = hairColor;
-  ctx.lineWidth = 7;
+  const eyeY = y + 12 - lift * 0.08;
+  const eyeGap = 66;
+  const irisColors = ["#3a2b24", "#4b3428", "#283241", "#2f3b32"];
+  const iris = irisColors[Math.floor(rand() * irisColors.length)];
+
+  ctx.strokeStyle = mix(hairColor, "#000000", 0.08);
+  ctx.lineWidth = 5;
   ctx.lineCap = "round";
-
   ctx.beginPath();
-  ctx.moveTo(x - eyeGap - 38, eyeY - calm);
-  ctx.quadraticCurveTo(x - eyeGap, eyeY - 18, x - eyeGap + 38, eyeY - calm);
+  ctx.moveTo(x - eyeGap - 44, eyeY - 48);
+  ctx.quadraticCurveTo(x - eyeGap, eyeY - 66 - calm * 0.6, x - eyeGap + 44, eyeY - 48);
   ctx.stroke();
 
   ctx.beginPath();
-  ctx.moveTo(x + eyeGap - 38, eyeY - calm);
-  ctx.quadraticCurveTo(x + eyeGap, eyeY - 18, x + eyeGap + 38, eyeY - calm);
+  ctx.moveTo(x + eyeGap - 44, eyeY - 48);
+  ctx.quadraticCurveTo(x + eyeGap, eyeY - 66 - calm * 0.6, x + eyeGap + 44, eyeY - 48);
   ctx.stroke();
 
-  ctx.fillStyle = "#2c2730";
-  ctx.beginPath();
-  ctx.ellipse(x - eyeGap, eyeY + 16, 18, 24, 0, 0, Math.PI * 2);
-  ctx.ellipse(x + eyeGap, eyeY + 16, 18, 24, 0, 0, Math.PI * 2);
-  ctx.fill();
+  [-1, 1].forEach((side) => {
+    const cx = x + side * eyeGap;
+    ctx.fillStyle = "rgba(255,255,255,0.9)";
+    ctx.beginPath();
+    ctx.ellipse(cx, eyeY + 8, 42, 17, side * -0.03, 0, Math.PI * 2);
+    ctx.fill();
 
-  ctx.fillStyle = "rgba(255,255,255,0.86)";
-  ctx.beginPath();
-  ctx.arc(x - eyeGap + 6, eyeY + 8, 6, 0, Math.PI * 2);
-  ctx.arc(x + eyeGap + 6, eyeY + 8, 6, 0, Math.PI * 2);
-  ctx.fill();
+    ctx.strokeStyle = "rgba(60,38,34,0.42)";
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(cx - 44, eyeY + 8);
+    ctx.quadraticCurveTo(cx, eyeY - 12, cx + 44, eyeY + 8);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(cx - 38, eyeY + 12);
+    ctx.quadraticCurveTo(cx, eyeY + 25, cx + 38, eyeY + 12);
+    ctx.stroke();
 
-  ctx.strokeStyle = mix(hairColor, "#ffffff", 0.2);
-  ctx.lineWidth = 6;
-  ctx.beginPath();
-  ctx.moveTo(x - eyeGap - 48, eyeY - 52);
-  ctx.quadraticCurveTo(x - eyeGap, eyeY - 72 - calm, x - eyeGap + 50, eyeY - 48);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(x + eyeGap - 50, eyeY - 48);
-  ctx.quadraticCurveTo(x + eyeGap, eyeY - 72 - calm, x + eyeGap + 48, eyeY - 52);
-  ctx.stroke();
+    const irisGrad = ctx.createRadialGradient(cx - 4, eyeY + 3, 2, cx, eyeY + 8, 18);
+    irisGrad.addColorStop(0, mix(iris, "#ffffff", 0.38));
+    irisGrad.addColorStop(0.62, iris);
+    irisGrad.addColorStop(1, "#121114");
+    ctx.fillStyle = irisGrad;
+    ctx.beginPath();
+    ctx.arc(cx, eyeY + 8, 16, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = "#09080a";
+    ctx.beginPath();
+    ctx.arc(cx, eyeY + 8, 7, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = "rgba(255,255,255,0.88)";
+    ctx.beginPath();
+    ctx.arc(cx + 6, eyeY + 1, 4.2, 0, Math.PI * 2);
+    ctx.fill();
+  });
 
   if (sincerity > 12 || intellect > 12) {
-    ctx.globalAlpha = 0.36;
-    ctx.fillStyle = "#ffffff";
+    ctx.globalAlpha = 0.14;
+    ctx.fillStyle = "rgba(255,255,255,0.65)";
     ctx.beginPath();
-    ctx.ellipse(x - eyeGap, eyeY + 14, 34, 16, 0, 0, Math.PI * 2);
-    ctx.ellipse(x + eyeGap, eyeY + 14, 34, 16, 0, 0, Math.PI * 2);
+    ctx.ellipse(x - eyeGap, eyeY + 4, 48, 24, 0, 0, Math.PI * 2);
+    ctx.ellipse(x + eyeGap, eyeY + 4, 48, 24, 0, 0, Math.PI * 2);
     ctx.fill();
   }
   ctx.restore();
@@ -945,31 +1040,53 @@ function drawEyes(ctx, x, y, lift, calm, hairColor, intellect, sincerity) {
 
 function drawNose(ctx, x, y, skin) {
   ctx.save();
-  ctx.strokeStyle = mix(skin, "#bc6f60", 0.32);
-  ctx.lineWidth = 5;
+  const shadow = mix(skin, "#733a32", 0.28);
+  ctx.strokeStyle = shadow;
+  ctx.lineWidth = 3.5;
   ctx.lineCap = "round";
+  ctx.globalAlpha = 0.72;
   ctx.beginPath();
-  ctx.moveTo(x + 8, y - 18);
-  ctx.quadraticCurveTo(x + 28, y + 30, x - 8, y + 44);
+  ctx.moveTo(x + 7, y - 26);
+  ctx.quadraticCurveTo(x + 24, y + 20, x - 6, y + 45);
   ctx.stroke();
+  ctx.globalAlpha = 0.34;
+  ctx.fillStyle = shadow;
+  ctx.beginPath();
+  ctx.ellipse(x - 18, y + 50, 9, 4, -0.2, 0, Math.PI * 2);
+  ctx.ellipse(x + 18, y + 50, 9, 4, 0.2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = 0.28;
+  ctx.fillStyle = "rgba(255,255,255,0.72)";
+  ctx.beginPath();
+  ctx.ellipse(x - 8, y + 6, 9, 34, 0.1, 0, Math.PI * 2);
+  ctx.fill();
   ctx.restore();
 }
 
 function drawMouth(ctx, x, y, smile, color) {
   ctx.save();
-  ctx.strokeStyle = mix(color, "#75234c", 0.34);
-  ctx.lineWidth = 9;
-  ctx.lineCap = "round";
+  const lip = mix("#b65b63", color, 0.18);
+  ctx.fillStyle = mix(lip, "#ffffff", 0.12);
   ctx.beginPath();
   ctx.moveTo(x - 48, y);
-  ctx.quadraticCurveTo(x, y + 34 + smile * 34, x + 48, y);
+  ctx.bezierCurveTo(x - 18, y - 18 + smile * 8, x + 18, y - 18 + smile * 8, x + 48, y);
+  ctx.bezierCurveTo(x + 18, y + 22 + smile * 12, x - 18, y + 22 + smile * 12, x - 48, y);
+  ctx.fill();
+
+  ctx.strokeStyle = mix(lip, "#4a1f25", 0.34);
+  ctx.lineWidth = 3.2;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(x - 42, y + 2);
+  ctx.quadraticCurveTo(x, y + 12 + smile * 22, x + 42, y + 2);
   ctx.stroke();
+
   if (smile > 0.55) {
-    ctx.strokeStyle = "rgba(255,255,255,0.65)";
-    ctx.lineWidth = 4;
+    ctx.strokeStyle = "rgba(255,255,255,0.36)";
+    ctx.lineWidth = 2.4;
     ctx.beginPath();
-    ctx.moveTo(x - 28, y + 10);
-    ctx.quadraticCurveTo(x, y + 24, x + 28, y + 10);
+    ctx.moveTo(x - 26, y + 11);
+    ctx.quadraticCurveTo(x, y + 20, x + 26, y + 11);
     ctx.stroke();
   }
   ctx.restore();
@@ -977,11 +1094,11 @@ function drawMouth(ctx, x, y, smile, color) {
 
 function drawCheeks(ctx, x, y, warmth, romance) {
   ctx.save();
-  ctx.globalAlpha = Math.min(0.36, 0.12 + (warmth + romance) / 120);
-  ctx.fillStyle = "#ff7da9";
+  ctx.globalAlpha = Math.min(0.18, 0.05 + (warmth + romance) / 220);
+  ctx.fillStyle = "#c95d66";
   ctx.beginPath();
-  ctx.ellipse(x - 100, y, 38, 18, -0.08, 0, Math.PI * 2);
-  ctx.ellipse(x + 100, y, 38, 18, 0.08, 0, Math.PI * 2);
+  ctx.ellipse(x - 94, y, 48, 23, -0.08, 0, Math.PI * 2);
+  ctx.ellipse(x + 94, y, 48, 23, 0.08, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
 }
@@ -1048,111 +1165,41 @@ function drawCollarPin(ctx, x, y, color) {
   ctx.restore();
 }
 
-function drawCaption(ctx, title, top, width, height) {
+function drawPhotoFinish(ctx, width, height, rand) {
   ctx.save();
-  ctx.fillStyle = "rgba(255,255,255,0.78)";
-  roundedRect(ctx, 70, height - 172, width - 140, 98, 8);
-  ctx.fill();
-  ctx.fillStyle = "#24212b";
-  ctx.font = "900 30px system-ui, sans-serif";
-  ctx.textAlign = "center";
-  ctx.fillText("내 이상형을 돌려도!", width / 2, height - 126);
-  ctx.fillStyle = "#d92b78";
-  ctx.font = "800 21px system-ui, sans-serif";
-  ctx.fillText(top.map((trait) => traitMeta[trait.key].label).join(" · "), width / 2, height - 92);
-  ctx.fillStyle = "rgba(36,33,43,0.72)";
-  ctx.font = "700 18px system-ui, sans-serif";
-  ctx.fillText("KMokky", width / 2, height - 54);
+
+  const highlight = ctx.createRadialGradient(width * 0.32, height * 0.2, 10, width * 0.36, height * 0.26, 520);
+  highlight.addColorStop(0, "rgba(255,255,255,0.28)");
+  highlight.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.fillStyle = highlight;
+  ctx.fillRect(0, 0, width, height);
+
+  const vignette = ctx.createRadialGradient(width / 2, height * 0.45, height * 0.2, width / 2, height * 0.48, height * 0.72);
+  vignette.addColorStop(0, "rgba(0,0,0,0)");
+  vignette.addColorStop(1, "rgba(38,25,32,0.22)");
+  ctx.fillStyle = vignette;
+  ctx.fillRect(0, 0, width, height);
+
+  ctx.globalAlpha = 0.055;
+  for (let i = 0; i < 4200; i += 1) {
+    const shade = Math.floor(70 + rand() * 120);
+    ctx.fillStyle = `rgb(${shade}, ${shade}, ${shade})`;
+    ctx.fillRect(rand() * width, rand() * height, 1, 1);
+  }
+
+  ctx.globalAlpha = 0.08;
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(0, 0, width, height);
   ctx.restore();
-}
-
-async function saveResult(profile) {
-  const directSupabase = apiConfig.directSupabase;
-  if (!apiConfig.saveEndpoint && (!directSupabase.url || !directSupabase.publishableKey)) {
-    setSaveStatus("idle");
-    return;
-  }
-
-  setSaveStatus("saving");
-  const payload = {
-    mode: state.mode,
-    answer_count: state.answers.filter((answer) => Number.isInteger(answer)).length,
-    answer_pattern: state.answers,
-    result_title: profile.title,
-    result_summary: profile.summary,
-    image_prompt: profile.prompt,
-    scores: profile.scores,
-    top_traits: profile.top.map((trait) => ({
-      key: trait.key,
-      label: traitMeta[trait.key].label,
-      score: trait.value,
-    })),
-    app_name: appIdentity.name,
-    maker: appIdentity.maker,
-  };
-
-  try {
-    await postResult(payload);
-
-    setSaveStatus("saved");
-  } catch (error) {
-    console.warn("Supabase save skipped:", error);
-    setSaveStatus("failed");
-  }
-}
-
-async function postResult(payload) {
-  if (apiConfig.saveEndpoint && window.location.protocol !== "file:") {
-    const response = await fetch(apiConfig.saveEndpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-
-    if (response.ok) return;
-  }
-
-  const directSupabase = apiConfig.directSupabase;
-  if (!directSupabase.url || !directSupabase.publishableKey) {
-    throw new Error("Supabase configuration is missing");
-  }
-
-  const response = await fetch(`${directSupabase.url}/rest/v1/${directSupabase.table}`, {
-    method: "POST",
-    headers: {
-      apikey: directSupabase.publishableKey,
-      Authorization: `Bearer ${directSupabase.publishableKey}`,
-      "Content-Type": "application/json",
-      Prefer: "return=minimal",
-    },
-    body: JSON.stringify(payload),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Supabase responded with ${response.status}`);
-  }
-}
-
-function setSaveStatus(status) {
-  if (!els.saveStatus) return;
-  const messages = {
-    idle: "Supabase 저장 대기",
-    saving: "Supabase에 익명 결과 저장 중",
-    saved: "Supabase에 익명 결과 저장 완료",
-    failed: "결과는 생성됐고 Supabase 저장은 확인이 필요해요",
-  };
-  els.saveStatus.textContent = messages[status] || messages.idle;
-  els.saveStatus.classList.toggle("saved", status === "saved");
-  els.saveStatus.classList.toggle("failed", status === "failed");
 }
 
 function setImageStatus(status, customMessage) {
   if (!els.imageStatus) return;
   const messages = {
-    idle: "AI 이미지 생성 대기",
-    generating: "OpenAI 이미지 API로 이상형 이미지를 생성 중이에요",
-    generated: "AI 이미지 생성 완료",
-    fallback: "AI API 미설정 시 브라우저 캔버스 이미지로 대체돼요",
+    idle: "사진 스타일 이미지 준비",
+    generating: "브라우저에서 사진 스타일 이미지를 만드는 중이에요",
+    generated: "사진 스타일 이미지 생성 완료",
+    fallback: "브라우저 canvas 이미지로 보여줘요",
   };
   els.imageStatus.textContent = customMessage || messages[status] || messages.idle;
   els.imageStatus.classList.toggle("generated", status === "generated");
@@ -1236,10 +1283,212 @@ function randomSample() {
 }
 
 function downloadPortrait() {
+  downloadCanvas(els.portraitCanvas, "ideal-type-kmokky.png");
+}
+
+function downloadCanvas(canvas, filename) {
   const link = document.createElement("a");
-  link.download = "ideal-type-kmokky.png";
-  link.href = els.portraitCanvas.toDataURL("image/png");
+  link.download = filename;
+  link.href = canvas.toDataURL("image/png");
   link.click();
+}
+
+async function sharePortrait() {
+  await shareCanvasImage({
+    canvas: els.portraitCanvas,
+    filename: "my-ideal-type-photo.png",
+    title: "나의 이상형",
+    text: "나의 이상형 사진이에요.",
+    button: els.sharePortraitButton,
+  });
+}
+
+async function sharePlacard() {
+  const placardCanvas = createPlacardCanvas(buildProfile());
+  await shareCanvasImage({
+    canvas: placardCanvas,
+    filename: "my-ideal-type-placard.png",
+    title: "나의 이상형 플랜카드",
+    text: "나의 이상형 사진과 결과 정보예요.",
+    button: els.sharePlacardButton,
+  });
+}
+
+async function shareCanvasImage({ canvas, filename, title, text, button }) {
+  const originalText = button.textContent;
+  button.disabled = true;
+  button.textContent = "공유 준비 중";
+
+  try {
+    const blob = await canvasToBlob(canvas);
+    const file = new File([blob], filename, { type: blob.type || "image/png" });
+
+    if (navigator.canShare?.({ files: [file] })) {
+      await navigator.share({ files: [file], title, text });
+      button.textContent = "공유 완료";
+    } else {
+      downloadCanvas(canvas, filename);
+      button.textContent = "이미지 저장됨";
+    }
+  } catch (error) {
+    if (error?.name !== "AbortError") {
+      console.warn("Image share fell back to download:", error);
+      downloadCanvas(canvas, filename);
+      button.textContent = "이미지 저장됨";
+    }
+  } finally {
+    setTimeout(() => {
+      button.disabled = false;
+      button.textContent = originalText;
+    }, 1200);
+  }
+}
+
+function canvasToBlob(canvas) {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (blob) {
+        resolve(blob);
+        return;
+      }
+      reject(new Error("공유 이미지를 만들 수 없어요."));
+    }, "image/png");
+  });
+}
+
+function createPlacardCanvas(profile) {
+  const canvas = document.createElement("canvas");
+  canvas.width = 1200;
+  canvas.height = 2200;
+  const ctx = canvas.getContext("2d");
+  const width = canvas.width;
+  const height = canvas.height;
+  const primary = traitMeta[profile.top[0].key].color;
+  const secondary = traitMeta[profile.top[1].key].color;
+  const accent = traitMeta[profile.top[2].key].color;
+
+  const bg = ctx.createLinearGradient(0, 0, width, height);
+  bg.addColorStop(0, mix("#ffffff", primary, 0.18));
+  bg.addColorStop(0.56, "#fff9fc");
+  bg.addColorStop(1, mix("#ffffff", secondary, 0.2));
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, width, height);
+
+  ctx.fillStyle = "rgba(255,255,255,0.82)";
+  roundedRect(ctx, 52, 52, width - 104, height - 104, 34);
+  ctx.fill();
+  ctx.strokeStyle = "rgba(255,79,155,0.22)";
+  ctx.lineWidth = 3;
+  ctx.stroke();
+
+  ctx.fillStyle = varColor("--pink-deep", "#d92b78");
+  ctx.font = "900 38px system-ui, sans-serif";
+  ctx.textAlign = "left";
+  ctx.fillText("나의 이상형 플랜카드", 94, 122);
+
+  ctx.fillStyle = "rgba(36,33,43,0.54)";
+  ctx.font = "800 24px system-ui, sans-serif";
+  ctx.fillText(getPreferenceSummary(), 94, 164);
+
+  const photoX = 250;
+  const photoY = 205;
+  const photoW = 700;
+  const photoH = Math.round(photoW * (els.portraitCanvas.height / els.portraitCanvas.width));
+  ctx.save();
+  roundedRect(ctx, photoX, photoY, photoW, photoH, 26);
+  ctx.clip();
+  ctx.drawImage(els.portraitCanvas, photoX, photoY, photoW, photoH);
+  ctx.restore();
+  ctx.strokeStyle = "rgba(36,33,43,0.12)";
+  ctx.lineWidth = 2;
+  roundedRect(ctx, photoX, photoY, photoW, photoH, 26);
+  ctx.stroke();
+
+  let y = photoY + photoH + 72;
+  ctx.fillStyle = "#24212b";
+  ctx.font = "900 44px system-ui, sans-serif";
+  y = drawWrappedText(ctx, profile.title, 94, y, width - 188, 54, 2) + 20;
+
+  ctx.fillStyle = "rgba(36,33,43,0.72)";
+  ctx.font = "700 29px system-ui, sans-serif";
+  y = drawWrappedText(ctx, profile.summary, 94, y, width - 188, 42, 5) + 26;
+
+  ctx.fillStyle = "rgba(217,43,120,0.92)";
+  ctx.font = "900 25px system-ui, sans-serif";
+  ctx.fillText("TOP TRAITS", 94, y);
+  y += 28;
+
+  const traits = getNormalizedTraits(profile.scores).slice(0, 5);
+  traits.forEach((trait, index) => {
+    const x = 94 + (index % 2) * 506;
+    const rowY = y + Math.floor(index / 2) * 64;
+    const chipW = index === 4 ? 492 : 470;
+    ctx.fillStyle = index % 2 === 0 ? "rgba(255,79,155,0.1)" : "rgba(33,183,168,0.1)";
+    roundedRect(ctx, x, rowY, chipW, 48, 24);
+    ctx.fill();
+    ctx.fillStyle = "#24212b";
+    ctx.font = "900 24px system-ui, sans-serif";
+    ctx.fillText(traitMeta[trait.key].label, x + 22, rowY + 31);
+    ctx.fillStyle = "rgba(36,33,43,0.56)";
+    ctx.textAlign = "right";
+    ctx.fillText(`${trait.percent}`, x + chipW - 22, rowY + 31);
+    ctx.textAlign = "left";
+  });
+  y += 220;
+
+  ctx.fillStyle = "rgba(217,43,120,0.92)";
+  ctx.font = "900 23px system-ui, sans-serif";
+  ctx.fillText("PHOTO STYLE", 94, y);
+  y += 34;
+
+  ctx.fillStyle = "rgba(36,33,43,0.58)";
+  ctx.font = "700 21px system-ui, sans-serif";
+  y = drawWrappedText(ctx, profile.prompt, 94, y, width - 188, 31, 4) + 28;
+
+  ctx.fillStyle = "rgba(33,183,168,0.1)";
+  roundedRect(ctx, 94, height - 150, width - 188, 64, 18);
+  ctx.fill();
+  ctx.fillStyle = "rgba(36,33,43,0.62)";
+  ctx.font = "800 22px system-ui, sans-serif";
+  drawWrappedText(ctx, "검사 내용은 어디에도 저장되지 않고 결과 표시 후 파기돼요. 결과 저장용 DB 자체도 존재하지 않아요.", 120, height - 110, width - 240, 28, 2);
+
+  return canvas;
+}
+
+function getPreferenceSummary() {
+  const gender = preferenceMeta.gender[state.targetGender] || preferenceMeta.gender.any;
+  const ageRange = preferenceMeta.ageRange[state.targetAgeRange] || preferenceMeta.ageRange["20s"];
+  return `${gender.label} · ${ageRange.label} · ${state.mode}문항`;
+}
+
+function drawWrappedText(ctx, text, x, y, maxWidth, lineHeight, maxLines = Number.POSITIVE_INFINITY) {
+  const words = String(text).split(/\s+/).filter(Boolean);
+  const lines = [];
+  let line = "";
+
+  words.forEach((word) => {
+    const testLine = line ? `${line} ${word}` : word;
+    if (ctx.measureText(testLine).width <= maxWidth) {
+      line = testLine;
+      return;
+    }
+    if (line) lines.push(line);
+    line = word;
+  });
+
+  if (line) lines.push(line);
+
+  const visibleLines = lines.slice(0, maxLines);
+  visibleLines.forEach((visibleLine, index) => {
+    const suffix = index === maxLines - 1 && lines.length > maxLines ? "…" : "";
+    ctx.fillText(`${visibleLine}${suffix}`, x, y + index * lineHeight);
+  });
+
+  return y + Math.max(visibleLines.length - 1, 0) * lineHeight;
+}
+
+function varColor(name, fallback) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
 }
 
 async function copyPrompt() {
@@ -1262,11 +1511,17 @@ els.modeButtons.forEach((button) => {
   button.addEventListener("click", () => setMode(Number(button.dataset.mode)));
 });
 
+els.preferenceButtons.forEach((button) => {
+  button.addEventListener("click", () => setPreference(button.dataset.preference, button.dataset.value));
+});
+
 els.startButton.addEventListener("click", startQuiz);
 els.sampleButton.addEventListener("click", randomSample);
 els.backButton.addEventListener("click", goBack);
 els.resetButton.addEventListener("click", clearCurrentAnswer);
 els.downloadButton.addEventListener("click", downloadPortrait);
+els.sharePortraitButton.addEventListener("click", sharePortrait);
+els.sharePlacardButton.addEventListener("click", sharePlacard);
 els.restartButton.addEventListener("click", resetQuiz);
 els.restartTopButton.addEventListener("click", resetQuiz);
 els.copyPromptButton.addEventListener("click", copyPrompt);
