@@ -472,6 +472,7 @@ button {
 .portrait-stage {
   display: grid;
   place-items: center;
+  gap: 12px;
 }
 
 #portraitCanvas {
@@ -481,6 +482,33 @@ button {
   border-radius: 8px;
   background: #fff;
   box-shadow: 0 20px 48px rgba(83, 39, 70, 0.18);
+}
+
+.image-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 7px 11px;
+  border: 1px solid rgba(255, 79, 155, 0.24);
+  border-radius: 8px;
+  background: rgba(255, 248, 251, 0.9);
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+.image-status.generated {
+  border-color: rgba(33, 183, 168, 0.38);
+  background: rgba(33, 183, 168, 0.08);
+  color: #177d74;
+}
+
+.image-status.fallback {
+  border-color: rgba(244, 182, 63, 0.42);
+  background: rgba(244, 182, 63, 0.11);
+  color: #8a621c;
 }
 
 .result-details {

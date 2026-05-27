@@ -61,10 +61,19 @@ const traitMeta = {
   },
 };
 
-const supabaseConfig = {
-  url: "https://vvqpajzjkcqxpvsptqvr.supabase.co",
-  publishableKey: "sb_publishable_-12zCYO_YoB3Bp5cB9LvFA_DlOjxmid",
-  table: "ideal_type_results",
+const appIdentity = {
+  name: "내 이상형을 돌려도!",
+  maker: "KMokky",
+};
+
+const apiConfig = {
+  imageEndpoint: "/api/generate-image",
+  saveEndpoint: "/api/save-result",
+  directSupabase: {
+    url: "https://vvqpajzjkcqxpvsptqvr.supabase.co",
+    publishableKey: "sb_publishable_-12zCYO_YoB3Bp5cB9LvFA_DlOjxmid",
+    table: "ideal_type_results",
+  },
 };
 
 const optionSets = {
@@ -335,6 +344,7 @@ const state = {
   current: 0,
   answers: [],
   started: false,
+  resultToken: 0,
 };
 
 const els = {
@@ -359,6 +369,7 @@ const els = {
   traitList: document.querySelector("#traitList"),
   imagePrompt: document.querySelector("#imagePrompt"),
   saveStatus: document.querySelector("#saveStatus"),
+  imageStatus: document.querySelector("#imageStatus"),
   portraitCanvas: document.querySelector("#portraitCanvas"),
   downloadButton: document.querySelector("#downloadButton"),
   restartButton: document.querySelector("#restartButton"),
@@ -381,6 +392,9 @@ function setMode(mode) {
   state.current = 0;
   state.answers = [];
   state.started = false;
+  state.resultToken += 1;
+  setImageStatus("idle");
+  setSaveStatus("idle");
   els.modeButtons.forEach((button) => {
     const active = Number(button.dataset.mode) === mode;
     button.classList.toggle("active", active);
@@ -402,7 +416,9 @@ function resetQuiz() {
   state.current = 0;
   state.answers = [];
   state.started = false;
+  state.resultToken += 1;
   setSaveStatus("idle");
+  setImageStatus("idle");
   showScreen("start");
   renderProgress();
 }
@@ -547,18 +563,94 @@ function makeSummary(top) {
 
 function makePrompt(top) {
   const promptParts = top.map((trait) => traitMeta[trait.key].prompt);
-  return `gender-neutral Korean webtoon-inspired fashion portrait, ${promptParts.join(", ")}, clean editorial composition, pink accent logo mood, expressive eyes, polished digital illustration, soft daylight, high detail`;
+  return `fictional adult, gender-neutral Korean webtoon-inspired fashion portrait, ${promptParts.join(", ")}, clean editorial composition, pink accent logo mood, expressive eyes, polished digital illustration, soft daylight, high detail`;
 }
 
 function showResult() {
+  const token = state.resultToken + 1;
+  state.resultToken = token;
   const profile = buildProfile();
   els.resultTitle.textContent = profile.title;
   els.resultSummary.textContent = profile.summary;
   els.imagePrompt.textContent = profile.prompt;
   renderTraitList(profile.scores);
   drawPortrait(profile);
-  saveResult(profile);
   showScreen("result");
+  saveResult(profile);
+  generateAiPortrait(profile, token);
+}
+
+async function generateAiPortrait(profile, token) {
+  setImageStatus("generating");
+
+  if (window.location.protocol === "file:") {
+    setImageStatus("fallback", "Vercel 배포 또는 로컬 서버에서 AI 이미지 API가 활성화돼요. 지금은 캔버스 이미지로 보여줘요.");
+    return;
+  }
+
+  try {
+    const response = await fetch(apiConfig.imageEndpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        prompt: profile.prompt,
+        title: profile.title,
+        traits: profile.top.map((trait) => traitMeta[trait.key].label),
+        scores: profile.scores,
+        mode: state.mode,
+      }),
+    });
+
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok || !data.imageDataUrl) {
+      const message = data.message || "AI 이미지 API 응답을 확인해야 해요. 지금은 캔버스 이미지로 보여줘요.";
+      throw new Error(message);
+    }
+
+    if (token !== state.resultToken) return;
+
+    await paintGeneratedPortrait(data.imageDataUrl, profile);
+    if (token !== state.resultToken) return;
+    setImageStatus("generated", `OpenAI ${data.model || "image model"}로 AI 이미지를 생성했어요.`);
+  } catch (error) {
+    if (token !== state.resultToken) return;
+    console.warn("AI image generation fell back to canvas:", error);
+    setImageStatus("fallback", error.message || "AI 이미지 생성 대신 캔버스 이미지로 보여줘요.");
+  }
+}
+
+async function paintGeneratedPortrait(imageDataUrl, profile) {
+  const image = await loadImage(imageDataUrl);
+  const canvas = els.portraitCanvas;
+  const ctx = canvas.getContext("2d");
+  const width = canvas.width;
+  const height = canvas.height;
+  const scale = Math.max(width / image.width, height / image.height);
+  const drawWidth = image.width * scale;
+  const drawHeight = image.height * scale;
+  const drawX = (width - drawWidth) / 2;
+  const drawY = (height - drawHeight) / 2;
+
+  ctx.clearRect(0, 0, width, height);
+  ctx.drawImage(image, drawX, drawY, drawWidth, drawHeight);
+
+  const shade = ctx.createLinearGradient(0, height * 0.48, 0, height);
+  shade.addColorStop(0, "rgba(255,255,255,0)");
+  shade.addColorStop(1, "rgba(255,249,252,0.86)");
+  ctx.fillStyle = shade;
+  ctx.fillRect(0, 0, width, height);
+
+  drawCaption(ctx, profile.title, profile.top, width, height);
+}
+
+function loadImage(src) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = reject;
+    image.src = src;
+  });
 }
 
 function renderTraitList(scores) {
@@ -975,7 +1067,8 @@ function drawCaption(ctx, title, top, width, height) {
 }
 
 async function saveResult(profile) {
-  if (!supabaseConfig.url || !supabaseConfig.publishableKey) {
+  const directSupabase = apiConfig.directSupabase;
+  if (!apiConfig.saveEndpoint && (!directSupabase.url || !directSupabase.publishableKey)) {
     setSaveStatus("idle");
     return;
   }
@@ -994,30 +1087,49 @@ async function saveResult(profile) {
       label: traitMeta[trait.key].label,
       score: trait.value,
     })),
-    app_name: "내 이상형을 돌려도!",
-    maker: "KMokky",
+    app_name: appIdentity.name,
+    maker: appIdentity.maker,
   };
 
   try {
-    const response = await fetch(`${supabaseConfig.url}/rest/v1/${supabaseConfig.table}`, {
-      method: "POST",
-      headers: {
-        apikey: supabaseConfig.publishableKey,
-        Authorization: `Bearer ${supabaseConfig.publishableKey}`,
-        "Content-Type": "application/json",
-        Prefer: "return=minimal",
-      },
-      body: JSON.stringify(payload),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Supabase responded with ${response.status}`);
-    }
+    await postResult(payload);
 
     setSaveStatus("saved");
   } catch (error) {
     console.warn("Supabase save skipped:", error);
     setSaveStatus("failed");
+  }
+}
+
+async function postResult(payload) {
+  if (apiConfig.saveEndpoint && window.location.protocol !== "file:") {
+    const response = await fetch(apiConfig.saveEndpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (response.ok) return;
+  }
+
+  const directSupabase = apiConfig.directSupabase;
+  if (!directSupabase.url || !directSupabase.publishableKey) {
+    throw new Error("Supabase configuration is missing");
+  }
+
+  const response = await fetch(`${directSupabase.url}/rest/v1/${directSupabase.table}`, {
+    method: "POST",
+    headers: {
+      apikey: directSupabase.publishableKey,
+      Authorization: `Bearer ${directSupabase.publishableKey}`,
+      "Content-Type": "application/json",
+      Prefer: "return=minimal",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Supabase responded with ${response.status}`);
   }
 }
 
@@ -1032,6 +1144,19 @@ function setSaveStatus(status) {
   els.saveStatus.textContent = messages[status] || messages.idle;
   els.saveStatus.classList.toggle("saved", status === "saved");
   els.saveStatus.classList.toggle("failed", status === "failed");
+}
+
+function setImageStatus(status, customMessage) {
+  if (!els.imageStatus) return;
+  const messages = {
+    idle: "AI 이미지 생성 대기",
+    generating: "OpenAI 이미지 API로 이상형 이미지를 생성 중이에요",
+    generated: "AI 이미지 생성 완료",
+    fallback: "AI API 미설정 시 브라우저 캔버스 이미지로 대체돼요",
+  };
+  els.imageStatus.textContent = customMessage || messages[status] || messages.idle;
+  els.imageStatus.classList.toggle("generated", status === "generated");
+  els.imageStatus.classList.toggle("fallback", status === "fallback");
 }
 
 function roundedRect(ctx, x, y, width, height, radius) {
