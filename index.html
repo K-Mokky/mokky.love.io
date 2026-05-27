@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>내 이상형을 돌려도!</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand">
+          <div class="logo-mark" aria-hidden="true">
+            <span></span>
+            <i></i>
+          </div>
+          <div>
+            <h1>내 이상형을 돌려도!</h1>
+            <p>KMokky</p>
+          </div>
+        </div>
+        <div class="top-actions">
+          <button class="icon-button" id="restartTopButton" type="button" aria-label="처음부터 다시">
+            ↻
+          </button>
+        </div>
+      </header>
+
+      <main class="workspace">
+        <aside class="side-panel" aria-label="검사 설정과 진행 상태">
+          <section class="mode-panel">
+            <p class="eyebrow">QUESTION SET</p>
+            <div class="mode-control" role="radiogroup" aria-label="질문 수 선택">
+              <button class="mode-button active" type="button" data-mode="20" aria-checked="true" role="radio">
+                <strong>20</strong>
+                <span>빠르게</span>
+              </button>
+              <button class="mode-button" type="button" data-mode="50" aria-checked="false" role="radio">
+                <strong>50</strong>
+                <span>깊게</span>
+              </button>
+              <button class="mode-button" type="button" data-mode="100" aria-checked="false" role="radio">
+                <strong>100</strong>
+                <span>정밀하게</span>
+              </button>
+            </div>
+          </section>
+
+          <section class="status-panel">
+            <div class="dial" aria-hidden="true">
+              <div class="dial-ring">
+                <span id="progressNumber">0</span>
+              </div>
+            </div>
+            <div>
+              <p class="eyebrow">PROGRESS</p>
+              <strong id="progressText">시작 전</strong>
+              <p id="traitTeaser">질문을 돌리면 취향의 윤곽이 잡혀요.</p>
+            </div>
+          </section>
+
+          <section class="mini-map" aria-label="답변 진행 점">
+            <div id="answerDots"></div>
+          </section>
+        </aside>
+
+        <section class="main-panel" aria-live="polite">
+          <section class="screen start-screen" id="startScreen">
+            <div class="intro-copy">
+              <p class="eyebrow">PINK IDEAL TYPE ROULETTE</p>
+              <h2>질문을 고르고, 이상형을 돌려보세요.</h2>
+              <p>
+                답변 패턴을 바탕으로 성향을 추론하고, 그 분위기를 담은 AI 스타일 이미지를 만들어줘요.
+              </p>
+            </div>
+            <div class="start-actions">
+              <button class="primary-button" id="startButton" type="button">시작하기</button>
+              <button class="secondary-button" id="sampleButton" type="button">샘플 돌리기</button>
+            </div>
+          </section>
+
+          <section class="screen question-screen hidden" id="questionScreen">
+            <div class="question-head">
+              <div>
+                <p class="eyebrow" id="questionCategory">CATEGORY</p>
+                <h2 id="questionText"></h2>
+              </div>
+              <span id="questionCount">1 / 20</span>
+            </div>
+            <div class="options" id="options"></div>
+            <div class="question-actions">
+              <button class="secondary-button" id="backButton" type="button">이전</button>
+              <button class="secondary-button" id="resetButton" type="button">다시 선택</button>
+            </div>
+          </section>
+
+          <section class="screen result-screen hidden" id="resultScreen">
+            <div class="portrait-stage">
+              <canvas id="portraitCanvas" width="900" height="1120" aria-label="생성된 이상형 이미지"></canvas>
+            </div>
+            <div class="result-details">
+              <p class="eyebrow">RESULT</p>
+              <h2 id="resultTitle"></h2>
+              <p id="resultSummary"></p>
+              <div class="trait-list" id="traitList"></div>
+              <div class="prompt-box">
+                <div>
+                  <p class="eyebrow">IMAGE PROMPT</p>
+                  <p id="imagePrompt"></p>
+                </div>
+                <button class="icon-button" id="copyPromptButton" type="button" aria-label="프롬프트 복사">⧉</button>
+              </div>
+              <div class="save-status" id="saveStatus" role="status">Supabase 저장 대기</div>
+              <div class="result-actions">
+                <button class="primary-button" id="downloadButton" type="button">이미지 저장</button>
+                <button class="secondary-button" id="restartButton" type="button">다시 돌리기</button>
+              </div>
+            </div>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
