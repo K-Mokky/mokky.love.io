@@ -92,16 +92,6 @@ const preferenceMeta = {
       prompt: "age 30 to 36, clearly in their early-to-mid 30s",
       guard: "not elderly, not ajumma style, not ajusshi style, not auntie-like, not uncle-like, no gray hair, no deep wrinkles",
     },
-    "40s": {
-      label: "40대",
-      prompt: "age 40 to 46, stylish mature adult in their 40s",
-      guard: "not elderly, no gray hair unless subtle, no exaggerated wrinkles",
-    },
-    "50s": {
-      label: "50대 이상",
-      prompt: "age 50 to 58, elegant adult in their 50s",
-      guard: "not elderly, no frail appearance, no exaggerated wrinkles",
-    },
     any: {
       label: "나이대 상관없음",
       prompt: "age 25 to 39, contemporary adult look",
@@ -1393,10 +1383,9 @@ function drawPortrait(profile) {
   const genderFaceOffset = state.targetGender === "man" ? 18 : state.targetGender === "woman" ? -8 : 0;
   const genderHairOffset = state.targetGender === "woman" ? 42 : state.targetGender === "man" ? -32 : 0;
   const ageMaturity = {
+    teens: -4,
     "20s": 0,
     "30s": 10,
-    "40s": 20,
-    "50s": 30,
     any: 6,
   }[state.targetAgeRange] ?? 0;
   const faceWidth = 230 + genderFaceOffset + Math.min(28, steadiness * 1.05) - Math.min(14, adventure * 0.55);
