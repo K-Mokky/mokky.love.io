@@ -65,308 +65,974 @@ const preferenceMeta = {
   gender: {
     woman: {
       label: "여성",
-      prompt: "adult Korean woman",
+      prompt: "Korean woman",
     },
     man: {
       label: "남성",
-      prompt: "adult Korean man",
+      prompt: "Korean man",
     },
     any: {
       label: "성별 상관없음",
-      prompt: "gender-neutral Korean adult",
+      prompt: "Korean person",
     },
   },
   ageRange: {
     "20s": {
       label: "20대",
-      prompt: "in their 20s",
+      prompt: "age 24 to 29, clearly a young adult in their 20s",
+      guard: "not middle-aged, not elderly, not ajumma style, not ajusshi style, not auntie-like, not uncle-like, no gray hair, no deep wrinkles",
     },
     "30s": {
       label: "30대",
-      prompt: "in their 30s",
+      prompt: "age 30 to 36, clearly in their early-to-mid 30s",
+      guard: "not elderly, not ajumma style, not ajusshi style, not auntie-like, not uncle-like, no gray hair, no deep wrinkles",
     },
     "40s": {
       label: "40대",
-      prompt: "in their 40s",
+      prompt: "age 40 to 46, stylish mature adult in their 40s",
+      guard: "not elderly, no gray hair unless subtle, no exaggerated wrinkles",
     },
     "50s": {
       label: "50대 이상",
-      prompt: "in their 50s or older",
+      prompt: "age 50 to 58, elegant adult in their 50s",
+      guard: "not elderly, no frail appearance, no exaggerated wrinkles",
     },
     any: {
       label: "나이대 상관없음",
-      prompt: "",
+      prompt: "age 25 to 39, contemporary adult look",
+      guard: "not elderly, not ajumma style, not ajusshi style, not auntie-like, not uncle-like, no gray hair, no deep wrinkles",
     },
   },
 };
 
-const optionSets = {
-  warmth: [
-    {
-      label: "말을 천천히 듣고 표정으로 안심시켜주는 사람",
-      scores: { warmth: 4, sincerity: 2, steadiness: 1 },
-    },
-    {
-      label: "처음부터 편하게 웃으며 분위기를 열어주는 사람",
-      scores: { warmth: 2, energy: 2, humor: 2 },
-    },
-    {
-      label: "티 내지 않고 필요한 순간을 챙겨주는 사람",
-      scores: { warmth: 2, steadiness: 3, sincerity: 2 },
-    },
-  ],
-  energy: [
-    {
-      label: "함께 있으면 하루의 속도가 산뜻해지는 사람",
-      scores: { energy: 4, humor: 1, adventure: 2 },
-    },
-    {
-      label: "흥분보다 균형을 지키며 오래 가는 사람",
-      scores: { steadiness: 3, sincerity: 2, energy: 1 },
-    },
-    {
-      label: "갑자기 떠오른 일을 즐겁게 실행하는 사람",
-      scores: { energy: 3, adventure: 3, independence: 1 },
-    },
-  ],
-  humor: [
-    {
-      label: "센스 있는 농담으로 긴장을 풀어주는 사람",
-      scores: { humor: 4, warmth: 2, energy: 1 },
-    },
-    {
-      label: "말수는 적어도 타이밍이 정확한 사람",
-      scores: { humor: 2, intellect: 2, sincerity: 2 },
-    },
-    {
-      label: "서로의 이상한 취향까지 귀엽게 받아주는 사람",
-      scores: { humor: 3, romance: 2, independence: 2 },
-    },
-  ],
-  intellect: [
-    {
-      label: "대화가 깊어질수록 더 매력적인 사람",
-      scores: { intellect: 4, sincerity: 2, steadiness: 1 },
-    },
-    {
-      label: "호기심이 많고 새로운 관점을 자주 던지는 사람",
-      scores: { intellect: 3, adventure: 2, independence: 2 },
-    },
-    {
-      label: "생각을 또렷하게 정리해서 말하는 사람",
-      scores: { intellect: 3, steadiness: 2, aesthetics: 1 },
-    },
-  ],
-  steadiness: [
-    {
-      label: "약속과 생활 리듬이 믿을 수 있는 사람",
-      scores: { steadiness: 4, sincerity: 2, warmth: 1 },
-    },
-    {
-      label: "변수가 생겨도 차분히 방향을 잡는 사람",
-      scores: { steadiness: 3, intellect: 2, independence: 1 },
-    },
-    {
-      label: "감정 표현은 조용하지만 오래 곁을 지키는 사람",
-      scores: { steadiness: 3, romance: 1, sincerity: 3 },
-    },
-  ],
-  aesthetics: [
-    {
-      label: "옷차림과 공간에서 자기 취향이 보이는 사람",
-      scores: { aesthetics: 4, independence: 2, romance: 1 },
-    },
-    {
-      label: "화려함보다 정돈된 디테일이 예쁜 사람",
-      scores: { aesthetics: 3, steadiness: 2, intellect: 1 },
-    },
-    {
-      label: "평범한 날도 작은 장면처럼 만드는 사람",
-      scores: { aesthetics: 3, warmth: 1, romance: 3 },
-    },
-  ],
-  romance: [
-    {
-      label: "사소한 순간을 오래 기억해주는 사람",
-      scores: { romance: 4, warmth: 2, sincerity: 2 },
-    },
-    {
-      label: "과한 말보다 행동으로 설렘을 쌓는 사람",
-      scores: { romance: 3, steadiness: 2, sincerity: 2 },
-    },
-    {
-      label: "함께 있으면 영화의 한 장면처럼 느껴지는 사람",
-      scores: { romance: 4, aesthetics: 2, energy: 1 },
-    },
-  ],
-  independence: [
-    {
-      label: "혼자서도 자기 시간을 멋지게 채우는 사람",
-      scores: { independence: 4, aesthetics: 1, intellect: 2 },
-    },
-    {
-      label: "관계 안에서도 서로의 세계를 존중하는 사람",
-      scores: { independence: 3, sincerity: 2, steadiness: 2 },
-    },
-    {
-      label: "분명한 취향과 기준이 매력적인 사람",
-      scores: { independence: 4, aesthetics: 2, adventure: 1 },
-    },
-  ],
-  adventure: [
-    {
-      label: "새로운 장소와 경험에 먼저 마음이 열리는 사람",
-      scores: { adventure: 4, energy: 2, independence: 1 },
-    },
-    {
-      label: "계획 안에서도 작은 변주를 즐기는 사람",
-      scores: { adventure: 3, intellect: 1, humor: 2 },
-    },
-    {
-      label: "낯선 상황에서도 금방 자기 리듬을 찾는 사람",
-      scores: { adventure: 3, steadiness: 2, energy: 2 },
-    },
-  ],
-  sincerity: [
-    {
-      label: "말과 행동의 결이 같아서 믿음이 가는 사람",
-      scores: { sincerity: 4, steadiness: 2, warmth: 1 },
-    },
-    {
-      label: "감정을 숨기기보다 정확하게 나누려는 사람",
-      scores: { sincerity: 4, romance: 2, intellect: 1 },
-    },
-    {
-      label: "화려하지 않아도 오래 생각나는 사람",
-      scores: { sincerity: 3, warmth: 2, aesthetics: 1 },
-    },
-  ],
-};
+function pick(label, scores) {
+  return { label, scores };
+}
 
 const questionBlueprints = [
-  ["warmth", "첫인상", "처음 만났을 때 가장 먼저 마음이 기우는 분위기는?"],
-  ["energy", "첫인상", "첫 만남의 공기가 좋아지는 순간은 언제인가요?"],
-  ["humor", "첫인상", "어색함이 풀리는 방식으로 가장 끌리는 것은?"],
-  ["intellect", "첫인상", "짧은 대화 안에서 매력적으로 느껴지는 지점은?"],
-  ["steadiness", "첫인상", "처음부터 신뢰감이 생기는 사람은 어떤 쪽인가요?"],
-  ["aesthetics", "첫인상", "시선이 한 번 더 가는 취향의 결은 무엇인가요?"],
-  ["romance", "첫인상", "첫 만남에 설렘이 생기는 포인트는?"],
-  ["independence", "첫인상", "자기 색이 느껴지는 사람에게 끌릴 때는?"],
-  ["adventure", "첫인상", "처음 만났는데도 함께 해보고 싶은 일이 떠오르는 사람은?"],
-  ["sincerity", "첫인상", "첫인상에서 진심이 느껴지는 순간은?"],
+  {
+    category: "첫만남",
+    text: "약속 장소에 먼저 도착한 상대가 어떻게 기다리고 있으면 끌리나요?",
+    options: [
+      pick("메시지로 위치를 알려주며 편하게 오라고 말한다", { warmth: 4, steadiness: 1 }),
+      pick("근처 분위기 좋은 자리를 즉석에서 찾아둔다", { aesthetics: 3, energy: 2 }),
+      pick("기다리는 동안 떠오른 이야기를 자연스럽게 꺼낸다", { intellect: 3, sincerity: 2 }),
+    ],
+  },
+  {
+    category: "첫만남",
+    text: "처음 악수하거나 인사할 때 가장 매력적인 태도는 무엇인가요?",
+    options: [
+      pick("눈을 맞추고 부드럽게 웃으며 이름을 불러준다", { warmth: 3, romance: 2 }),
+      pick("담백하지만 자신감 있게 분위기를 열어준다", { independence: 3, energy: 2 }),
+      pick("과하지 않은 예의와 차분한 말투를 지킨다", { steadiness: 3, sincerity: 2 }),
+    ],
+  },
+  {
+    category: "첫만남",
+    text: "낯선 모임에서 상대에게 시선이 가는 순간은 언제인가요?",
+    options: [
+      pick("혼자 있는 사람을 자연스럽게 챙겨준다", { warmth: 4, sincerity: 1 }),
+      pick("재치 있는 말로 모두의 긴장을 가볍게 만든다", { humor: 4, energy: 1 }),
+      pick("자기 의견을 조용하지만 선명하게 말한다", { intellect: 3, independence: 2 }),
+    ],
+  },
+  {
+    category: "첫만남",
+    text: "상대의 옷차림에서 가장 먼저 호감이 생기는 지점은 무엇인가요?",
+    options: [
+      pick("깔끔하고 편안해 보여 오래 함께 걷고 싶다", { steadiness: 3, warmth: 2 }),
+      pick("작은 액세서리나 색감에서 취향이 느껴진다", { aesthetics: 4, independence: 1 }),
+      pick("예상 밖의 조합을 자기답게 소화한다", { independence: 3, adventure: 2 }),
+    ],
+  },
+  {
+    category: "첫만남",
+    text: "첫 대화가 5분 만에 편해지는 이유로 가장 좋은 것은?",
+    options: [
+      pick("내 말을 끊지 않고 표정으로 따라와 준다", { warmth: 4, sincerity: 1 }),
+      pick("질문 하나로 대화의 깊이를 만들어낸다", { intellect: 4, romance: 1 }),
+      pick("작은 실수를 웃음으로 바꿔 어색함을 없앤다", { humor: 4, energy: 1 }),
+    ],
+  },
+  {
+    category: "첫만남",
+    text: "처음 만난 사람이 약간 늦었을 때 어떤 반응이 더 끌리나요?",
+    options: [
+      pick("이유를 솔직히 말하고 바로 사과한다", { sincerity: 4, steadiness: 1 }),
+      pick("기다린 시간을 배려해 다음 일정을 세심히 맞춘다", { warmth: 3, steadiness: 2 }),
+      pick("분위기가 무거워지지 않게 가볍게 웃겨준다", { humor: 3, energy: 2 }),
+    ],
+  },
+  {
+    category: "첫만남",
+    text: "처음 보는 장소에서 상대가 길을 찾는 방식 중 매력적인 것은?",
+    options: [
+      pick("빠르게 방향을 정하고 먼저 움직인다", { energy: 3, adventure: 2 }),
+      pick("지도를 차분히 확인하며 불안하지 않게 설명한다", { steadiness: 4, intellect: 1 }),
+      pick("길을 헤매는 상황도 작은 추억처럼 즐긴다", { adventure: 3, humor: 2 }),
+    ],
+  },
+  {
+    category: "첫만남",
+    text: "첫 만남 후 집에 가는 길에 가장 오래 남는 장면은?",
+    options: [
+      pick("헤어질 때 오늘 좋았던 점을 구체적으로 말해준다", { romance: 3, sincerity: 2 }),
+      pick("무사히 도착했는지 부담 없이 확인해준다", { warmth: 3, steadiness: 2 }),
+      pick("짧은 만남에서도 자기 세계가 선명하게 보였다", { independence: 4, aesthetics: 1 }),
+    ],
+  },
+  {
+    category: "첫만남",
+    text: "상대의 목소리에서 가장 끌리는 느낌은 무엇인가요?",
+    options: [
+      pick("낮고 안정적이라 마음이 가라앉는다", { steadiness: 4, sincerity: 1 }),
+      pick("밝고 생동감 있어 주변 공기가 살아난다", { energy: 4, warmth: 1 }),
+      pick("조용하지만 문장마다 생각의 결이 느껴진다", { intellect: 4, aesthetics: 1 }),
+    ],
+  },
+  {
+    category: "첫만남",
+    text: "처음부터 다시 만나고 싶다는 생각이 드는 결정적 이유는?",
+    options: [
+      pick("짧은 시간에도 나를 존중받는 사람처럼 느끼게 한다", { sincerity: 3, warmth: 2 }),
+      pick("다음에 같이 해볼 일이 자연스럽게 떠오른다", { adventure: 3, energy: 2 }),
+      pick("평범한 대화도 장면처럼 기억되게 만든다", { romance: 3, aesthetics: 2 }),
+    ],
+  },
 
-  ["warmth", "대화", "긴 하루 끝에 어떤 대화를 나누고 싶나요?"],
-  ["energy", "대화", "대화의 텐션은 어느 정도가 가장 편한가요?"],
-  ["humor", "대화", "둘만의 농담이 생긴다면 어떤 느낌이 좋나요?"],
-  ["intellect", "대화", "깊은 대화에서 가장 설레는 순간은?"],
-  ["steadiness", "대화", "서로 의견이 다를 때 마음이 놓이는 태도는?"],
-  ["aesthetics", "대화", "취향 이야기를 할 때 끌리는 방식은?"],
-  ["romance", "대화", "말에서 설렘이 느껴지는 순간은 언제인가요?"],
-  ["independence", "대화", "서로의 생각이 다를 때 매력적으로 느껴지는 모습은?"],
-  ["adventure", "대화", "대화가 새로운 계획으로 이어진다면 어떤 흐름이 좋나요?"],
-  ["sincerity", "대화", "가장 믿음이 가는 말투는 어떤 쪽인가요?"],
+  {
+    category: "대화",
+    text: "밤늦게 긴 통화를 한다면 어떤 흐름이 가장 좋나요?",
+    options: [
+      pick("오늘 힘들었던 마음을 천천히 풀어놓을 수 있다", { warmth: 4, sincerity: 1 }),
+      pick("한 주제에서 다른 주제로 지적인 호기심이 이어진다", { intellect: 4, adventure: 1 }),
+      pick("사소한 농담이 계속 쌓여 둘만의 코드가 된다", { humor: 4, romance: 1 }),
+    ],
+  },
+  {
+    category: "대화",
+    text: "상대가 내 고민을 들을 때 어떤 방식이면 믿음이 가나요?",
+    options: [
+      pick("먼저 감정을 알아주고 해결책은 나중에 제안한다", { warmth: 4, sincerity: 1 }),
+      pick("문제를 구조적으로 정리해 선택지를 보여준다", { intellect: 4, steadiness: 1 }),
+      pick("내가 스스로 결정하도록 옆에서 기다려준다", { independence: 3, steadiness: 2 }),
+    ],
+  },
+  {
+    category: "대화",
+    text: "취향이 정반대라는 걸 알았을 때 더 끌리는 반응은?",
+    options: [
+      pick("왜 좋아하는지 궁금해하며 진심으로 들어본다", { sincerity: 3, intellect: 2 }),
+      pick("차이를 놀림거리로 만들지 않고 귀엽게 받아준다", { warmth: 3, humor: 2 }),
+      pick("서로의 취향을 섞은 새로운 시도를 제안한다", { adventure: 3, aesthetics: 2 }),
+    ],
+  },
+  {
+    category: "대화",
+    text: "말수가 적은 상대라면 어떤 순간에 매력을 느끼나요?",
+    options: [
+      pick("필요한 순간에 정확한 한마디를 건넨다", { intellect: 3, sincerity: 2 }),
+      pick("표정과 행동으로 꾸준히 마음을 보여준다", { steadiness: 3, warmth: 2 }),
+      pick("혼자만의 시간을 존중해도 거리감이 차갑지 않다", { independence: 3, sincerity: 2 }),
+    ],
+  },
+  {
+    category: "대화",
+    text: "함께 뉴스를 보다가 의견이 갈렸을 때 좋은 태도는?",
+    options: [
+      pick("근거를 차분히 나누며 서로의 관점을 넓힌다", { intellect: 4, steadiness: 1 }),
+      pick("이견보다 관계의 온도를 먼저 지켜준다", { warmth: 3, romance: 2 }),
+      pick("자기 입장을 숨기지 않되 상대를 깎아내리지 않는다", { independence: 3, sincerity: 2 }),
+    ],
+  },
+  {
+    category: "대화",
+    text: "칭찬을 들을 때 어떤 표현이 가장 설레나요?",
+    options: [
+      pick("겉모습보다 내가 애쓴 과정을 알아봐 준다", { sincerity: 4, warmth: 1 }),
+      pick("아주 구체적인 디테일을 기억해서 말해준다", { romance: 3, aesthetics: 2 }),
+      pick("재치 있게 말해 민망함까지 웃게 만든다", { humor: 3, energy: 2 }),
+    ],
+  },
+  {
+    category: "대화",
+    text: "상대가 자기 꿈을 말할 때 어떤 모습이 멋있나요?",
+    options: [
+      pick("현실적인 계획과 책임감을 함께 보여준다", { steadiness: 3, intellect: 2 }),
+      pick("눈빛이 살아나고 에너지가 주변으로 번진다", { energy: 4, adventure: 1 }),
+      pick("남과 비교하지 않는 자기만의 기준이 있다", { independence: 4, sincerity: 1 }),
+    ],
+  },
+  {
+    category: "대화",
+    text: "침묵이 생겼을 때 더 편하게 느껴지는 사람은?",
+    options: [
+      pick("억지로 채우지 않아도 온기가 느껴진다", { warmth: 3, steadiness: 2 }),
+      pick("창밖 풍경 같은 작은 소재로 부드럽게 이어간다", { aesthetics: 3, romance: 2 }),
+      pick("갑자기 엉뚱한 질문을 던져 분위기를 바꾼다", { humor: 3, adventure: 2 }),
+    ],
+  },
+  {
+    category: "대화",
+    text: "메신저 말투에서 가장 호감이 가는 특징은?",
+    options: [
+      pick("짧아도 맥락과 배려가 빠지지 않는다", { sincerity: 3, steadiness: 2 }),
+      pick("이모티콘과 표현이 밝아 기분이 좋아진다", { energy: 3, warmth: 2 }),
+      pick("가끔 예상 못 한 문장으로 웃음을 준다", { humor: 4, independence: 1 }),
+    ],
+  },
+  {
+    category: "대화",
+    text: "서로의 과거 이야기를 나눌 때 가장 중요한 것은?",
+    options: [
+      pick("판단보다 이해하려는 태도를 보인다", { warmth: 3, sincerity: 2 }),
+      pick("무겁지 않게 받아들이되 가볍게 소비하지 않는다", { steadiness: 3, intellect: 2 }),
+      pick("상처까지도 앞으로의 방향으로 연결해 말한다", { adventure: 2, sincerity: 3 }),
+    ],
+  },
 
-  ["warmth", "데이트", "평범한 데이트에서 가장 좋게 남는 순간은?"],
-  ["energy", "데이트", "데이트 코스의 속도감은 어떻게 흘렀으면 하나요?"],
-  ["humor", "데이트", "함께 웃게 되는 상황으로 가장 좋은 것은?"],
-  ["intellect", "데이트", "데이트 중 대화가 오래 기억나는 이유는?"],
-  ["steadiness", "데이트", "약속을 함께 보낼 때 편안한 사람은?"],
-  ["aesthetics", "데이트", "데이트 장소를 고르는 감각으로 끌리는 것은?"],
-  ["romance", "데이트", "데이트에서 설렘이 가장 커지는 장면은?"],
-  ["independence", "데이트", "각자의 취향을 데이트에 섞는 방식은?"],
-  ["adventure", "데이트", "가끔은 어떤 데이트가 마음을 움직이나요?"],
-  ["sincerity", "데이트", "데이트 후 가장 오래 남는 마음은?"],
+  {
+    category: "데이트",
+    text: "주말 오후 데이트를 정한다면 가장 끌리는 제안은?",
+    options: [
+      pick("조용한 카페에서 오래 이야기하고 함께 산책한다", { warmth: 3, romance: 2 }),
+      pick("전시나 편집숍을 돌며 서로의 취향을 발견한다", { aesthetics: 4, intellect: 1 }),
+      pick("당일에 끌리는 동네로 가볍게 떠나본다", { adventure: 4, energy: 1 }),
+    ],
+  },
+  {
+    category: "데이트",
+    text: "식당 예약이 갑자기 취소됐을 때 좋은 상대의 모습은?",
+    options: [
+      pick("침착하게 근처 대안을 찾고 내 기분을 살핀다", { steadiness: 3, warmth: 2 }),
+      pick("오히려 새로운 맛집 탐험이라며 즐겁게 바꾼다", { adventure: 3, energy: 2 }),
+      pick("상황을 웃긴 에피소드로 만들어 긴장을 풀어준다", { humor: 4, romance: 1 }),
+    ],
+  },
+  {
+    category: "데이트",
+    text: "영화를 보고 나오는 길에 어떤 대화가 좋나요?",
+    options: [
+      pick("좋았던 장면을 감정 중심으로 나눈다", { romance: 3, warmth: 2 }),
+      pick("연출과 메시지를 깊게 해석해본다", { intellect: 4, aesthetics: 1 }),
+      pick("명대사를 장난스럽게 따라 하며 웃는다", { humor: 3, energy: 2 }),
+    ],
+  },
+  {
+    category: "데이트",
+    text: "함께 사진을 찍는다면 어떤 스타일이 더 마음에 드나요?",
+    options: [
+      pick("자연스럽게 웃는 순간을 놓치지 않는다", { warmth: 3, energy: 2 }),
+      pick("구도와 빛을 신경 써 예쁜 한 장을 만든다", { aesthetics: 4, romance: 1 }),
+      pick("남들이 안 찍는 엉뚱한 장면을 남긴다", { independence: 3, humor: 2 }),
+    ],
+  },
+  {
+    category: "데이트",
+    text: "데이트 비용을 다룰 때 어떤 태도가 편한가요?",
+    options: [
+      pick("서로 부담 없도록 먼저 균형을 맞추려 한다", { steadiness: 3, sincerity: 2 }),
+      pick("상황에 따라 기분 좋게 번갈아 챙긴다", { warmth: 3, romance: 2 }),
+      pick("돈보다 경험의 만족도를 더 중요하게 본다", { adventure: 2, aesthetics: 3 }),
+    ],
+  },
+  {
+    category: "데이트",
+    text: "비 오는 날 데이트에서 가장 기억에 남을 행동은?",
+    options: [
+      pick("우산을 자연스럽게 내 쪽으로 기울여준다", { warmth: 4, romance: 1 }),
+      pick("젖은 길도 분위기 있다며 사진 찍을 곳을 찾는다", { aesthetics: 3, adventure: 2 }),
+      pick("실내 동선을 빠르게 정리해 불편함을 줄인다", { steadiness: 4, intellect: 1 }),
+    ],
+  },
+  {
+    category: "데이트",
+    text: "긴 줄을 기다려야 하는 상황에서 어떤 사람이 좋나요?",
+    options: [
+      pick("기다림도 대화 시간처럼 편안하게 만든다", { warmth: 3, sincerity: 2 }),
+      pick("게임이나 장난으로 지루함을 없앤다", { humor: 3, energy: 2 }),
+      pick("대기 시간을 계산해 더 효율적인 선택을 제안한다", { intellect: 3, steadiness: 2 }),
+    ],
+  },
+  {
+    category: "데이트",
+    text: "상대가 데이트 코스를 준비했다면 어떤 부분이 감동인가요?",
+    options: [
+      pick("내가 좋아한다고 말한 것을 기억해 반영했다", { sincerity: 4, romance: 1 }),
+      pick("익숙한 장소도 새롭게 느끼게 구성했다", { aesthetics: 3, adventure: 2 }),
+      pick("무리 없는 시간표로 편안함을 챙겼다", { steadiness: 4, warmth: 1 }),
+    ],
+  },
+  {
+    category: "데이트",
+    text: "함께 걷다가 예쁜 골목을 발견했을 때 좋은 반응은?",
+    options: [
+      pick("잠깐 돌아가도 괜찮다며 내 호기심을 따라와 준다", { warmth: 3, adventure: 2 }),
+      pick("그 골목의 분위기를 자기만의 말로 표현한다", { aesthetics: 3, intellect: 2 }),
+      pick("다음 데이트에 이 동네를 더 탐험하자고 한다", { adventure: 4, romance: 1 }),
+    ],
+  },
+  {
+    category: "데이트",
+    text: "하루 데이트가 끝난 뒤 가장 듣고 싶은 말은?",
+    options: [
+      pick("오늘 너랑 있어서 마음이 편했어", { warmth: 4, steadiness: 1 }),
+      pick("오늘 장면 중에 이 순간이 계속 생각나", { romance: 4, aesthetics: 1 }),
+      pick("다음엔 우리가 안 해본 걸 해보자", { adventure: 3, energy: 2 }),
+    ],
+  },
 
-  ["warmth", "일상", "매일의 작은 순간에서 끌리는 모습은?"],
-  ["energy", "일상", "함께 사소한 일을 할 때 좋은 리듬은?"],
-  ["humor", "일상", "일상 속 웃음 포인트는 어떤 쪽이 좋은가요?"],
-  ["intellect", "일상", "일상에서도 멋있게 느껴지는 생각의 방식은?"],
-  ["steadiness", "일상", "생활감에서 안정적으로 느껴지는 모습은?"],
-  ["aesthetics", "일상", "아무 날도 예쁘게 느껴지는 디테일은?"],
-  ["romance", "일상", "일상에서 설렘이 유지되는 방식은?"],
-  ["independence", "일상", "각자의 루틴을 가진 사람에게 끌리는 순간은?"],
-  ["adventure", "일상", "평범한 하루에 작은 변화를 만든다면?"],
-  ["sincerity", "일상", "반복되는 날들 속 믿음이 생기는 행동은?"],
+  {
+    category: "일상",
+    text: "같이 장을 보러 갔을 때 어떤 모습이 매력적인가요?",
+    options: [
+      pick("필요한 것을 꼼꼼히 챙겨 생활력이 보인다", { steadiness: 4, sincerity: 1 }),
+      pick("새로운 재료를 보고 즉석 요리를 제안한다", { adventure: 3, energy: 2 }),
+      pick("내가 좋아하는 간식을 기억하고 담아준다", { warmth: 3, romance: 2 }),
+    ],
+  },
+  {
+    category: "일상",
+    text: "집에서 쉬는 날 상대가 어떤 시간을 보내면 좋나요?",
+    options: [
+      pick("각자 쉬어도 같은 공간의 온기가 느껴진다", { warmth: 3, independence: 2 }),
+      pick("읽고 보던 것에 대해 깊은 이야기를 꺼낸다", { intellect: 4, sincerity: 1 }),
+      pick("갑자기 작은 홈카페나 음악회를 연다", { aesthetics: 3, romance: 2 }),
+    ],
+  },
+  {
+    category: "일상",
+    text: "아침 인사에서 가장 기분 좋아지는 방식은?",
+    options: [
+      pick("오늘 일정 힘내라는 짧은 응원을 보낸다", { warmth: 3, energy: 2 }),
+      pick("날씨나 컨디션을 살피며 무리하지 말라고 한다", { steadiness: 3, sincerity: 2 }),
+      pick("뜬금없는 귀여운 농담으로 하루를 열어준다", { humor: 4, romance: 1 }),
+    ],
+  },
+  {
+    category: "일상",
+    text: "함께 청소를 한다면 어떤 파트너가 좋은가요?",
+    options: [
+      pick("말없이도 역할을 나누고 꾸준히 해낸다", { steadiness: 4, sincerity: 1 }),
+      pick("음악을 틀고 분위기를 살려 지루하지 않게 한다", { energy: 3, humor: 2 }),
+      pick("공간의 배치와 디테일까지 예쁘게 정리한다", { aesthetics: 4, intellect: 1 }),
+    ],
+  },
+  {
+    category: "일상",
+    text: "피곤해서 말수가 줄어든 날 상대에게 바라는 것은?",
+    options: [
+      pick("캐묻지 않고 곁에서 편안하게 있어준다", { warmth: 3, steadiness: 2 }),
+      pick("필요한 것만 묻고 혼자 있을 시간을 존중한다", { independence: 3, sincerity: 2 }),
+      pick("가벼운 농담으로 부담 없이 웃게 해준다", { humor: 3, energy: 2 }),
+    ],
+  },
+  {
+    category: "일상",
+    text: "평범한 저녁 식사가 특별해지는 이유는?",
+    options: [
+      pick("서로의 하루를 진심으로 궁금해한다", { sincerity: 3, warmth: 2 }),
+      pick("플레이팅이나 음악처럼 작은 분위기를 챙긴다", { aesthetics: 4, romance: 1 }),
+      pick("새 메뉴에 도전하며 실패까지 즐긴다", { adventure: 3, humor: 2 }),
+    ],
+  },
+  {
+    category: "일상",
+    text: "상대의 생활 습관 중 가장 호감인 것은?",
+    options: [
+      pick("약속한 일을 미루지 않고 책임진다", { steadiness: 4, sincerity: 1 }),
+      pick("자기 루틴을 지키며 스스로를 돌본다", { independence: 4, intellect: 1 }),
+      pick("주변 사람들에게 작은 친절을 습관처럼 건넨다", { warmth: 4, sincerity: 1 }),
+    ],
+  },
+  {
+    category: "일상",
+    text: "같이 대중교통을 탈 때 끌리는 모습은?",
+    options: [
+      pick("사람이 많아도 내 동선을 자연스럽게 배려한다", { warmth: 4, steadiness: 1 }),
+      pick("창밖을 보며 재미있는 상상을 이야기한다", { humor: 3, aesthetics: 2 }),
+      pick("노선과 시간을 빠르게 파악해 안내한다", { intellect: 3, steadiness: 2 }),
+    ],
+  },
+  {
+    category: "일상",
+    text: "갑자기 시간이 빈 오후에 어떤 제안이 반가운가요?",
+    options: [
+      pick("동네를 천천히 걸으며 쉬자고 한다", { warmth: 3, steadiness: 2 }),
+      pick("근처에서 열리는 작은 행사를 찾아낸다", { adventure: 3, energy: 2 }),
+      pick("각자 하고 싶던 일을 하다가 저녁에 만나자고 한다", { independence: 4, sincerity: 1 }),
+    ],
+  },
+  {
+    category: "일상",
+    text: "반복되는 평일에도 마음이 식지 않는 이유는?",
+    options: [
+      pick("작은 안부와 배려가 꾸준히 이어진다", { warmth: 3, steadiness: 2 }),
+      pick("매일 한 가지씩 웃을 일을 만들어준다", { humor: 3, energy: 2 }),
+      pick("각자의 성장을 응원하는 대화가 있다", { intellect: 3, sincerity: 2 }),
+    ],
+  },
 
-  ["warmth", "관계", "관계에서 가장 받고 싶은 온도는?"],
-  ["energy", "관계", "관계의 활기는 어떤 방식이 좋나요?"],
-  ["humor", "관계", "둘 사이의 장난은 어느 정도가 편한가요?"],
-  ["intellect", "관계", "함께 성장한다는 느낌이 드는 순간은?"],
-  ["steadiness", "관계", "관계가 안정적으로 느껴지는 기준은?"],
-  ["aesthetics", "관계", "둘만의 취향을 쌓는다면 어떤 모습인가요?"],
-  ["romance", "관계", "오래 갈수록 더 설레는 관계의 모습은?"],
-  ["independence", "관계", "관계 안의 독립성은 어떻게 유지되면 좋나요?"],
-  ["adventure", "관계", "둘의 세계가 넓어진다고 느끼는 때는?"],
-  ["sincerity", "관계", "관계에서 가장 중요한 진심의 표현은?"],
+  {
+    category: "취향",
+    text: "플레이리스트를 공유한다면 어떤 상대가 끌리나요?",
+    options: [
+      pick("내 감정에 맞는 노래를 골라 보내준다", { romance: 3, warmth: 2 }),
+      pick("새로운 장르를 소개하며 세계를 넓혀준다", { adventure: 3, intellect: 2 }),
+      pick("곡 순서와 분위기까지 자기 취향으로 완성한다", { aesthetics: 4, independence: 1 }),
+    ],
+  },
+  {
+    category: "취향",
+    text: "상대의 책장이나 작업 공간을 봤을 때 매력적인 점은?",
+    options: [
+      pick("관심사가 깊고 오래 쌓인 흔적이 보인다", { intellect: 4, sincerity: 1 }),
+      pick("정돈 방식에서 차분한 생활감이 느껴진다", { steadiness: 3, aesthetics: 2 }),
+      pick("남들이 잘 모르는 물건에 자기 이야기가 담겨 있다", { independence: 4, romance: 1 }),
+    ],
+  },
+  {
+    category: "취향",
+    text: "패션 취향이 다를 때 어떤 사람이 더 좋나요?",
+    options: [
+      pick("내 스타일을 바꾸려 하지 않고 존중한다", { independence: 3, sincerity: 2 }),
+      pick("서로 어울리는 포인트를 찾아 즐겁게 제안한다", { aesthetics: 3, warmth: 2 }),
+      pick("다름을 장난스럽게 받아들이며 웃는다", { humor: 3, energy: 2 }),
+    ],
+  },
+  {
+    category: "취향",
+    text: "맛집을 고를 때 가장 마음이 가는 기준은?",
+    options: [
+      pick("내가 편하게 먹을 수 있는지를 먼저 생각한다", { warmth: 3, steadiness: 2 }),
+      pick("분위기와 메뉴의 조화를 세심하게 본다", { aesthetics: 4, romance: 1 }),
+      pick("한 번도 안 먹어본 메뉴에 도전한다", { adventure: 4, energy: 1 }),
+    ],
+  },
+  {
+    category: "취향",
+    text: "전시회에서 상대와 함께라면 어떤 시간이 좋나요?",
+    options: [
+      pick("작품 앞에서 각자의 해석을 차분히 나눈다", { intellect: 4, aesthetics: 1 }),
+      pick("마음에 든 색과 장면을 사진처럼 기억한다", { aesthetics: 4, romance: 1 }),
+      pick("어려운 작품도 가볍게 웃으며 접근한다", { humor: 3, adventure: 2 }),
+    ],
+  },
+  {
+    category: "취향",
+    text: "상대가 오래 해온 취미를 소개할 때 끌리는 모습은?",
+    options: [
+      pick("잘난 척보다 좋아하는 마음이 먼저 보인다", { sincerity: 4, warmth: 1 }),
+      pick("초보자인 나도 즐길 수 있게 쉽게 알려준다", { warmth: 3, intellect: 2 }),
+      pick("자기만의 방식과 철학이 뚜렷하다", { independence: 4, aesthetics: 1 }),
+    ],
+  },
+  {
+    category: "취향",
+    text: "둘만의 취향을 새로 만든다면 무엇이 좋나요?",
+    options: [
+      pick("매달 한 번 새로운 동네를 탐험하는 약속", { adventure: 4, energy: 1 }),
+      pick("서로에게 어울리는 노래와 문장을 모으는 습관", { romance: 3, aesthetics: 2 }),
+      pick("함께 배운 것을 기록하고 발전시키는 루틴", { intellect: 3, steadiness: 2 }),
+    ],
+  },
+  {
+    category: "취향",
+    text: "상대가 좋아하는 영화를 강하게 추천한다면 어떤 방식이 좋나요?",
+    options: [
+      pick("왜 자신에게 소중한지 솔직히 설명한다", { sincerity: 4, romance: 1 }),
+      pick("내 취향과 맞을 지점을 섬세하게 짚어준다", { intellect: 3, warmth: 2 }),
+      pick("추천 실패도 웃어넘길 수 있게 가볍게 권한다", { humor: 3, steadiness: 2 }),
+    ],
+  },
+  {
+    category: "취향",
+    text: "인테리어 취향에서 가장 매력적으로 느껴지는 것은?",
+    options: [
+      pick("편안하고 오래 머물고 싶은 온도가 있다", { warmth: 3, steadiness: 2 }),
+      pick("색감과 조명이 자기답게 정돈되어 있다", { aesthetics: 4, independence: 1 }),
+      pick("여행과 경험의 흔적이 공간 곳곳에 있다", { adventure: 3, sincerity: 2 }),
+    ],
+  },
+  {
+    category: "취향",
+    text: "새로운 취미를 같이 시작할 때 기대되는 상대는?",
+    options: [
+      pick("서툰 과정을 함께 웃으며 즐긴다", { humor: 3, warmth: 2 }),
+      pick("배우는 방법을 찾아 꾸준히 실력이 는다", { intellect: 3, steadiness: 2 }),
+      pick("결과보다 해보는 용기를 먼저 낸다", { adventure: 4, energy: 1 }),
+    ],
+  },
 
-  ["warmth", "취향", "좋아하는 음악을 공유할 때 끌리는 모습은?"],
-  ["energy", "취향", "함께 취미를 즐긴다면 어떤 에너지가 좋나요?"],
-  ["humor", "취향", "취향 차이를 웃으며 넘기는 방식은?"],
-  ["intellect", "취향", "취향 이야기가 깊어질 때 매력적인 사람은?"],
-  ["steadiness", "취향", "취미 생활에서 안정적으로 보이는 태도는?"],
-  ["aesthetics", "취향", "가장 마음이 가는 스타일 감각은?"],
-  ["romance", "취향", "서로의 취향이 로맨틱하게 느껴지는 순간은?"],
-  ["independence", "취향", "강한 취향을 가진 사람에게 끌리는 이유는?"],
-  ["adventure", "취향", "새 취향을 함께 발견한다면 어떤 사람이 좋나요?"],
-  ["sincerity", "취향", "취향을 대하는 태도에서 진심이 보이는 순간은?"],
+  {
+    category: "갈등",
+    text: "서운함을 말했을 때 가장 안심되는 반응은?",
+    options: [
+      pick("방어하지 않고 내 감정을 끝까지 들어준다", { warmth: 4, sincerity: 1 }),
+      pick("문제가 반복되지 않도록 구체적인 약속을 한다", { steadiness: 4, sincerity: 1 }),
+      pick("감정과 사실을 나누어 차분히 정리한다", { intellect: 4, steadiness: 1 }),
+    ],
+  },
+  {
+    category: "갈등",
+    text: "의견 충돌 후 화해하는 과정에서 중요한 것은?",
+    options: [
+      pick("먼저 손을 내밀어 관계의 온도를 회복한다", { warmth: 3, romance: 2 }),
+      pick("서로의 책임을 정확히 인정한다", { sincerity: 4, steadiness: 1 }),
+      pick("다음에는 다른 방식으로 시도해보자고 제안한다", { adventure: 3, intellect: 2 }),
+    ],
+  },
+  {
+    category: "갈등",
+    text: "상대가 화가 났을 때 어떤 모습이면 믿음이 가나요?",
+    options: [
+      pick("큰소리보다 시간을 두고 차분히 말한다", { steadiness: 4, sincerity: 1 }),
+      pick("상처 주는 농담을 하지 않고 선을 지킨다", { sincerity: 3, warmth: 2 }),
+      pick("감정이 가라앉은 뒤 해결책을 함께 찾는다", { intellect: 3, steadiness: 2 }),
+    ],
+  },
+  {
+    category: "갈등",
+    text: "내 실수로 분위기가 어색해졌을 때 바라는 상대는?",
+    options: [
+      pick("괜찮다고 말하며 다시 시도할 여유를 준다", { warmth: 4, steadiness: 1 }),
+      pick("실수를 가볍게 웃음으로 바꿔준다", { humor: 4, energy: 1 }),
+      pick("무엇을 고치면 좋을지 솔직하지만 다정하게 말한다", { sincerity: 3, intellect: 2 }),
+    ],
+  },
+  {
+    category: "갈등",
+    text: "약속 방식이 서로 다르다는 걸 알았을 때 좋은 태도는?",
+    options: [
+      pick("서로의 기준을 물어보고 중간 지점을 찾는다", { sincerity: 3, steadiness: 2 }),
+      pick("내 방식을 강요하지 않고 각자의 리듬을 인정한다", { independence: 4, warmth: 1 }),
+      pick("불편함을 줄이는 새로운 규칙을 같이 만든다", { intellect: 3, adventure: 2 }),
+    ],
+  },
+  {
+    category: "갈등",
+    text: "질투나 불안이 생겼을 때 어떤 사람이 안정감을 주나요?",
+    options: [
+      pick("숨기지 않고 관계의 경계를 분명히 말한다", { sincerity: 4, steadiness: 1 }),
+      pick("불안을 민망하게 만들지 않고 안심시켜준다", { warmth: 4, romance: 1 }),
+      pick("각자의 사생활과 신뢰를 균형 있게 지킨다", { independence: 3, steadiness: 2 }),
+    ],
+  },
+  {
+    category: "갈등",
+    text: "서로 바쁜 시기에 갈등이 생기면 어떤 해결이 좋나요?",
+    options: [
+      pick("짧게라도 시간을 정해 진심을 확인한다", { sincerity: 3, romance: 2 }),
+      pick("당장 해결할 것과 나중에 볼 것을 나눈다", { intellect: 3, steadiness: 2 }),
+      pick("잠깐의 웃음으로 숨 쉴 틈을 만든다", { humor: 3, warmth: 2 }),
+    ],
+  },
+  {
+    category: "갈등",
+    text: "상대가 사과할 때 가장 중요하게 느끼는 것은?",
+    options: [
+      pick("구체적으로 무엇이 미안한지 알고 있다", { sincerity: 4, intellect: 1 }),
+      pick("내 마음이 풀릴 때까지 재촉하지 않는다", { warmth: 3, steadiness: 2 }),
+      pick("같은 일이 반복되지 않게 행동을 바꾼다", { steadiness: 4, sincerity: 1 }),
+    ],
+  },
+  {
+    category: "갈등",
+    text: "관계에서 선을 정해야 할 때 끌리는 방식은?",
+    options: [
+      pick("부드럽지만 분명하게 자신의 기준을 말한다", { independence: 4, sincerity: 1 }),
+      pick("상대가 상처받지 않도록 말의 온도를 조절한다", { warmth: 3, aesthetics: 2 }),
+      pick("왜 그 선이 필요한지 논리적으로 설명한다", { intellect: 4, steadiness: 1 }),
+    ],
+  },
+  {
+    category: "갈등",
+    text: "갈등을 지나고도 더 가까워졌다고 느끼는 이유는?",
+    options: [
+      pick("서로의 약한 부분을 더 조심히 대하게 됐다", { warmth: 3, sincerity: 2 }),
+      pick("문제 해결 방식이 한층 단단해졌다", { steadiness: 3, intellect: 2 }),
+      pick("위기를 계기로 새로운 관계 방식을 만들었다", { adventure: 3, romance: 2 }),
+    ],
+  },
 
-  ["warmth", "갈등", "서운한 일이 있을 때 가장 바라는 태도는?"],
-  ["energy", "갈등", "분위기가 가라앉았을 때 회복하는 방식은?"],
-  ["humor", "갈등", "화해의 분위기를 만드는 데 좋은 방식은?"],
-  ["intellect", "갈등", "문제를 풀 때 끌리는 사고방식은?"],
-  ["steadiness", "갈등", "갈등 중에도 안정감을 주는 사람은?"],
-  ["aesthetics", "갈등", "감정 표현이 예쁘다고 느껴지는 방식은?"],
-  ["romance", "갈등", "화해 후 설렘이 돌아오는 순간은?"],
-  ["independence", "갈등", "갈등 속에서도 존중받는다고 느끼는 태도는?"],
-  ["adventure", "갈등", "관계를 새롭게 바꾸는 용기는 어떤 모습인가요?"],
-  ["sincerity", "갈등", "사과와 대화에서 가장 중요한 것은?"],
+  {
+    category: "연락",
+    text: "하루 중 연락이 가장 기분 좋게 느껴지는 순간은?",
+    options: [
+      pick("바쁜 중에도 짧게 내 안부를 챙긴다", { warmth: 3, sincerity: 2 }),
+      pick("재미있는 사진이나 문장으로 웃게 만든다", { humor: 3, energy: 2 }),
+      pick("오늘의 중요한 일을 기억하고 응원해준다", { steadiness: 3, romance: 2 }),
+    ],
+  },
+  {
+    category: "연락",
+    text: "답장이 늦어질 때 어떤 설명이 가장 편한가요?",
+    options: [
+      pick("늦어질 상황을 미리 알려 불안하지 않게 한다", { steadiness: 4, warmth: 1 }),
+      pick("나중에라도 이유와 마음을 솔직히 전한다", { sincerity: 4, romance: 1 }),
+      pick("각자의 집중 시간을 자연스럽게 존중한다", { independence: 4, intellect: 1 }),
+    ],
+  },
+  {
+    category: "연락",
+    text: "연락 빈도가 맞지 않을 때 이상적인 조율은?",
+    options: [
+      pick("서로 부담 없는 최소한의 약속을 정한다", { steadiness: 3, sincerity: 2 }),
+      pick("연락보다 만났을 때의 밀도를 더 중요하게 둔다", { romance: 3, independence: 2 }),
+      pick("새로운 방식의 짧은 체크인을 함께 실험한다", { adventure: 3, intellect: 2 }),
+    ],
+  },
+  {
+    category: "연락",
+    text: "갑자기 보고 싶다는 말을 들을 때 어떤 뉘앙스가 좋나요?",
+    options: [
+      pick("부담 주지 않고 마음만 다정하게 전한다", { warmth: 4, romance: 1 }),
+      pick("장난스럽게 말해도 진심이 느껴진다", { humor: 3, sincerity: 2 }),
+      pick("바로 볼 수 있는 현실적인 방법을 제안한다", { energy: 3, steadiness: 2 }),
+    ],
+  },
+  {
+    category: "연락",
+    text: "긴 문자를 받는다면 어떤 내용이 가장 좋나요?",
+    options: [
+      pick("내가 해준 말과 행동을 오래 기억해 적어준다", { romance: 4, sincerity: 1 }),
+      pick("요즘 고민을 솔직하게 공유하며 가까워진다", { sincerity: 4, warmth: 1 }),
+      pick("생각을 정리한 문장들이 배울 점을 준다", { intellect: 4, aesthetics: 1 }),
+    ],
+  },
+  {
+    category: "연락",
+    text: "음성 메시지를 보낸다면 어떤 분위기가 끌리나요?",
+    options: [
+      pick("낮은 목소리로 오늘 하루를 차분히 들려준다", { steadiness: 3, romance: 2 }),
+      pick("웃음 섞인 목소리로 생생한 에너지를 전한다", { energy: 3, humor: 2 }),
+      pick("짧지만 마음을 정확히 표현한다", { sincerity: 4, warmth: 1 }),
+    ],
+  },
+  {
+    category: "연락",
+    text: "연락에서 가장 피하고 싶은 불안이 사라지는 순간은?",
+    options: [
+      pick("말과 행동의 패턴이 꾸준히 맞아떨어진다", { steadiness: 4, sincerity: 1 }),
+      pick("모호한 표현보다 분명한 마음을 보여준다", { sincerity: 4, romance: 1 }),
+      pick("내가 묻지 않아도 필요한 맥락을 알려준다", { warmth: 3, intellect: 2 }),
+    ],
+  },
+  {
+    category: "연락",
+    text: "둘만의 연락 습관을 만든다면 어떤 것이 좋나요?",
+    options: [
+      pick("하루에 좋았던 일을 하나씩 나눈다", { warmth: 3, romance: 2 }),
+      pick("새로 알게 된 것을 짧게 공유한다", { intellect: 3, adventure: 2 }),
+      pick("웃긴 순간을 모아 둘만의 밈으로 만든다", { humor: 4, energy: 1 }),
+    ],
+  },
+  {
+    category: "연락",
+    text: "상대가 SNS를 대하는 방식 중 호감인 것은?",
+    options: [
+      pick("보여주기보다 실제 관계의 신뢰를 더 중시한다", { sincerity: 3, steadiness: 2 }),
+      pick("자기 취향과 일상을 감각적으로 기록한다", { aesthetics: 4, independence: 1 }),
+      pick("온라인에서도 상대를 배려하는 선을 지킨다", { warmth: 3, independence: 2 }),
+    ],
+  },
+  {
+    category: "연락",
+    text: "잠들기 전 마지막 연락으로 가장 좋은 것은?",
+    options: [
+      pick("오늘도 고생했다는 따뜻한 한마디", { warmth: 4, sincerity: 1 }),
+      pick("내일 기대되는 일을 함께 떠올리는 말", { energy: 3, adventure: 2 }),
+      pick("짧지만 로맨틱하게 마음을 남기는 문장", { romance: 4, aesthetics: 1 }),
+    ],
+  },
 
-  ["warmth", "성장", "서로에게 좋은 사람이 된다고 느끼는 순간은?"],
-  ["energy", "성장", "함께 목표를 향해 갈 때 좋은 에너지는?"],
-  ["humor", "성장", "어려운 시기를 견디는 유머는 어떤 느낌인가요?"],
-  ["intellect", "성장", "서로 배우게 되는 관계의 매력은?"],
-  ["steadiness", "성장", "오래 성장할 수 있는 사람의 특징은?"],
-  ["aesthetics", "성장", "성장 과정에서도 잃지 않았으면 하는 감각은?"],
-  ["romance", "성장", "시간이 지나도 설레는 이유는 무엇일까요?"],
-  ["independence", "성장", "각자 더 멋있어지는 관계는 어떤 모습인가요?"],
-  ["adventure", "성장", "새로운 도전을 함께한다면 어떤 사람이 좋나요?"],
-  ["sincerity", "성장", "성장의 방향에서 가장 믿음이 가는 사람은?"],
+  {
+    category: "미래",
+    text: "1년 뒤의 관계를 상상할 때 가장 바라는 모습은?",
+    options: [
+      pick("서로의 일상을 믿고 맡길 만큼 편안하다", { steadiness: 4, warmth: 1 }),
+      pick("함께 해본 경험이 많아 세계가 넓어졌다", { adventure: 4, energy: 1 }),
+      pick("처음보다 서로를 더 정확히 이해한다", { sincerity: 3, intellect: 2 }),
+    ],
+  },
+  {
+    category: "미래",
+    text: "장기적인 계획을 이야기할 때 끌리는 사람은?",
+    options: [
+      pick("현실적인 숫자와 책임을 피하지 않는다", { steadiness: 4, intellect: 1 }),
+      pick("꿈을 말할 때 눈빛과 에너지가 살아난다", { energy: 3, romance: 2 }),
+      pick("각자의 목표를 존중하는 구조를 함께 찾는다", { independence: 3, sincerity: 2 }),
+    ],
+  },
+  {
+    category: "미래",
+    text: "함께 살 공간을 상상한다면 가장 중요한 분위기는?",
+    options: [
+      pick("돌아오면 마음이 쉬는 안정적인 집", { steadiness: 3, warmth: 2 }),
+      pick("둘의 취향이 자연스럽게 섞인 감각적인 공간", { aesthetics: 4, romance: 1 }),
+      pick("각자의 작업과 휴식이 존중되는 구조", { independence: 4, intellect: 1 }),
+    ],
+  },
+  {
+    category: "미래",
+    text: "힘든 시기를 오래 함께 통과하려면 무엇이 필요할까요?",
+    options: [
+      pick("감정이 약해질 때도 서로를 다정하게 대하는 힘", { warmth: 4, sincerity: 1 }),
+      pick("문제를 작게 나누어 꾸준히 해결하는 힘", { steadiness: 4, intellect: 1 }),
+      pick("상황을 다르게 보는 유연함과 용기", { adventure: 3, humor: 2 }),
+    ],
+  },
+  {
+    category: "미래",
+    text: "서로의 커리어를 응원하는 방식으로 가장 좋은 것은?",
+    options: [
+      pick("성과보다 노력과 방향을 먼저 인정한다", { sincerity: 3, warmth: 2 }),
+      pick("필요한 정보와 아이디어를 함께 찾아준다", { intellect: 3, steadiness: 2 }),
+      pick("새로운 도전을 무서워하지 않게 북돋운다", { energy: 3, adventure: 2 }),
+    ],
+  },
+  {
+    category: "미래",
+    text: "나이가 들어도 유지됐으면 하는 매력은?",
+    options: [
+      pick("사소한 배려가 습관처럼 남아 있는 다정함", { warmth: 4, steadiness: 1 }),
+      pick("계속 배우고 질문하는 지적인 생동감", { intellect: 4, adventure: 1 }),
+      pick("자기다운 스타일을 잃지 않는 선명함", { independence: 3, aesthetics: 2 }),
+    ],
+  },
+  {
+    category: "미래",
+    text: "둘이 큰 결정을 내려야 할 때 이상적인 모습은?",
+    options: [
+      pick("자료를 보고 차분히 장단점을 따진다", { intellect: 4, steadiness: 1 }),
+      pick("서로의 마음이 다치지 않게 속도를 맞춘다", { warmth: 3, romance: 2 }),
+      pick("결정 후에는 함께 책임지고 움직인다", { sincerity: 3, energy: 2 }),
+    ],
+  },
+  {
+    category: "미래",
+    text: "관계가 오래될수록 더 좋아졌으면 하는 부분은?",
+    options: [
+      pick("말하지 않아도 필요한 배려를 알아차린다", { warmth: 3, steadiness: 2 }),
+      pick("새로운 주제와 경험으로 대화가 늙지 않는다", { intellect: 3, adventure: 2 }),
+      pick("익숙함 속에서도 설레는 표현을 잊지 않는다", { romance: 4, aesthetics: 1 }),
+    ],
+  },
+  {
+    category: "미래",
+    text: "가족이나 친구에게 소개할 때 자랑하고 싶은 점은?",
+    options: [
+      pick("사람을 편안하게 만드는 따뜻한 태도", { warmth: 4, sincerity: 1 }),
+      pick("어디서든 자기답게 행동하는 당당함", { independence: 4, energy: 1 }),
+      pick("말과 행동이 한결같아 믿을 수 있는 점", { steadiness: 4, sincerity: 1 }),
+    ],
+  },
+  {
+    category: "미래",
+    text: "함께 늦은 밤 미래를 상상한다면 어떤 이야기가 좋나요?",
+    options: [
+      pick("우리가 지키고 싶은 일상의 온도를 말한다", { warmth: 3, romance: 2 }),
+      pick("가보고 싶은 곳과 해보고 싶은 일을 그린다", { adventure: 4, energy: 1 }),
+      pick("각자의 꿈이 서로에게 어떤 의미인지 나눈다", { sincerity: 3, intellect: 2 }),
+    ],
+  },
 
-  ["warmth", "리듬", "연락의 온도는 어느 쪽이 가장 편한가요?"],
-  ["energy", "리듬", "만나는 빈도와 텐션은 어떤 쪽이 좋나요?"],
-  ["humor", "리듬", "연락 중 웃음이 생기는 방식은?"],
-  ["intellect", "리듬", "혼자 있는 시간 뒤 나누고 싶은 이야기는?"],
-  ["steadiness", "리듬", "관계의 페이스에서 안정적인 느낌은?"],
-  ["aesthetics", "리듬", "둘만의 리듬이 예쁘게 느껴지는 순간은?"],
-  ["romance", "리듬", "매일의 작은 설렘은 어떻게 오면 좋나요?"],
-  ["independence", "리듬", "서로의 시간을 지켜주는 방식은?"],
-  ["adventure", "리듬", "갑작스러운 제안이 반가운 순간은?"],
-  ["sincerity", "리듬", "연락과 만남에서 진심이 느껴지는 기준은?"],
+  {
+    category: "여행",
+    text: "첫 여행지를 고른다면 어떤 사람이 더 끌리나요?",
+    options: [
+      pick("교통과 숙소를 안정적으로 확인해 둔다", { steadiness: 4, sincerity: 1 }),
+      pick("현지 분위기와 골목의 감각을 중요하게 본다", { aesthetics: 3, adventure: 2 }),
+      pick("일단 떠나서 우연한 발견을 즐기자고 한다", { adventure: 4, energy: 1 }),
+    ],
+  },
+  {
+    category: "여행",
+    text: "여행 중 길을 잃었을 때 가장 좋은 반응은?",
+    options: [
+      pick("침착하게 현재 위치를 확인하고 안심시킨다", { steadiness: 4, warmth: 1 }),
+      pick("예상 밖의 길도 여행의 일부라며 웃는다", { adventure: 3, humor: 2 }),
+      pick("현지 사람에게 정중히 물어보며 해결한다", { sincerity: 3, energy: 2 }),
+    ],
+  },
+  {
+    category: "여행",
+    text: "숙소에서 쉬는 시간에 상대가 무엇을 하면 좋나요?",
+    options: [
+      pick("서로 피곤한 정도를 살피며 일정을 조절한다", { warmth: 3, steadiness: 2 }),
+      pick("오늘 본 풍경을 사진과 글로 정리한다", { aesthetics: 3, sincerity: 2 }),
+      pick("내일 해볼 즉흥 코스를 찾아본다", { adventure: 3, energy: 2 }),
+    ],
+  },
+  {
+    category: "여행",
+    text: "여행 사진을 고를 때 가장 마음에 드는 기준은?",
+    options: [
+      pick("둘이 자연스럽게 웃는 순간이 담겼다", { warmth: 3, romance: 2 }),
+      pick("빛과 배경이 영화처럼 예쁘다", { aesthetics: 4, romance: 1 }),
+      pick("실수와 장난까지 보여주는 생생한 장면이다", { humor: 3, adventure: 2 }),
+    ],
+  },
+  {
+    category: "여행",
+    text: "현지 음식이 낯설 때 어떤 상대가 좋나요?",
+    options: [
+      pick("내 입맛과 컨디션을 먼저 배려한다", { warmth: 4, steadiness: 1 }),
+      pick("조금씩 나눠 먹으며 경험을 넓혀준다", { adventure: 3, romance: 2 }),
+      pick("음식의 배경이나 문화를 궁금해한다", { intellect: 3, sincerity: 2 }),
+    ],
+  },
+  {
+    category: "여행",
+    text: "예산을 정해 여행할 때 끌리는 태도는?",
+    options: [
+      pick("중요한 곳과 아낄 곳을 현실적으로 나눈다", { steadiness: 4, intellect: 1 }),
+      pick("작은 돈으로도 특별한 경험을 찾아낸다", { adventure: 3, aesthetics: 2 }),
+      pick("서로 부담되지 않게 솔직히 이야기한다", { sincerity: 4, warmth: 1 }),
+    ],
+  },
+  {
+    category: "여행",
+    text: "여행 일정이 너무 빡빡해졌을 때 좋은 선택은?",
+    options: [
+      pick("과감히 줄이고 몸과 마음의 여유를 만든다", { steadiness: 3, warmth: 2 }),
+      pick("가장 설레는 하나만 남겨 집중해서 즐긴다", { romance: 3, independence: 2 }),
+      pick("즉흥적으로 동선을 바꿔 새로운 재미를 찾는다", { adventure: 4, energy: 1 }),
+    ],
+  },
+  {
+    category: "여행",
+    text: "공항이나 역에서 기다리는 시간에 끌리는 모습은?",
+    options: [
+      pick("필요한 서류와 시간을 꼼꼼히 챙긴다", { steadiness: 4, sincerity: 1 }),
+      pick("기다림을 작은 데이트처럼 만들어준다", { romance: 3, humor: 2 }),
+      pick("낯선 사람과 공간을 관찰하며 이야깃거리를 만든다", { intellect: 3, aesthetics: 2 }),
+    ],
+  },
+  {
+    category: "여행",
+    text: "돌아오는 길에 어떤 사람이 더 오래 기억될까요?",
+    options: [
+      pick("여행 내내 내 컨디션을 세심하게 살폈다", { warmth: 4, sincerity: 1 }),
+      pick("예상 못 한 순간마다 즐거운 용기를 냈다", { adventure: 4, energy: 1 }),
+      pick("여행의 의미를 함께 정리해 깊이를 남겼다", { intellect: 3, romance: 2 }),
+    ],
+  },
+  {
+    category: "여행",
+    text: "다음 여행을 또 함께 가고 싶어지는 이유는?",
+    options: [
+      pick("계획과 즉흥의 균형이 편안했다", { steadiness: 3, adventure: 2 }),
+      pick("평범한 풍경도 둘만의 장면으로 만들었다", { aesthetics: 3, romance: 2 }),
+      pick("어려운 순간에도 서로를 탓하지 않았다", { sincerity: 4, warmth: 1 }),
+    ],
+  },
 
-  ["warmth", "미래", "함께 미래를 상상할 때 가장 먼저 떠오르는 감정은?"],
-  ["energy", "미래", "미래의 일상에 있으면 좋을 활기는?"],
-  ["humor", "미래", "오래 함께 웃는다면 어떤 모습일까요?"],
-  ["intellect", "미래", "미래를 계획할 때 끌리는 사람은?"],
-  ["steadiness", "미래", "오래 곁에 두고 싶은 안정감은?"],
-  ["aesthetics", "미래", "둘의 미래에 남기고 싶은 취향은?"],
-  ["romance", "미래", "시간이 지나도 간직하고 싶은 설렘은?"],
-  ["independence", "미래", "미래에도 각자의 세계가 빛나는 모습은?"],
-  ["adventure", "미래", "함께 넓혀가고 싶은 세계는?"],
-  ["sincerity", "미래", "마지막까지 가장 중요하게 남을 진심은?"],
+  {
+    category: "위기",
+    text: "내가 갑자기 몸이 안 좋을 때 어떤 사람이 좋나요?",
+    options: [
+      pick("필요한 약과 휴식을 조용히 챙겨준다", { warmth: 4, steadiness: 1 }),
+      pick("병원이나 이동 동선을 빠르게 정리한다", { steadiness: 4, intellect: 1 }),
+      pick("불안하지 않게 곁에서 솔직히 상황을 공유한다", { sincerity: 3, warmth: 2 }),
+    ],
+  },
+  {
+    category: "위기",
+    text: "갑자기 돈이나 일정 문제가 생겼을 때 끌리는 태도는?",
+    options: [
+      pick("감정적으로 몰아붙이지 않고 사실을 확인한다", { intellect: 3, steadiness: 2 }),
+      pick("책임질 부분을 피하지 않고 바로 나선다", { sincerity: 4, energy: 1 }),
+      pick("위기 속에서도 서로의 자존심을 지켜준다", { warmth: 3, independence: 2 }),
+    ],
+  },
+  {
+    category: "위기",
+    text: "내가 큰 실망을 겪은 날 상대에게 가장 바라는 것은?",
+    options: [
+      pick("조언보다 먼저 내 편이라는 느낌을 준다", { warmth: 4, romance: 1 }),
+      pick("상황을 객관적으로 보며 다음 선택을 돕는다", { intellect: 3, steadiness: 2 }),
+      pick("다시 움직일 힘이 생기도록 밝은 기운을 준다", { energy: 3, sincerity: 2 }),
+    ],
+  },
+  {
+    category: "위기",
+    text: "둘 다 지쳐 예민한 날 관계를 지키는 방법은?",
+    options: [
+      pick("상처 줄 말을 멈추고 잠깐 쉬어간다", { steadiness: 4, warmth: 1 }),
+      pick("지금 힘든 이유를 솔직하게 인정한다", { sincerity: 4, intellect: 1 }),
+      pick("작은 웃음으로 긴장을 낮춘 뒤 대화한다", { humor: 3, romance: 2 }),
+    ],
+  },
+  {
+    category: "위기",
+    text: "상대가 실패를 겪었을 때 어떤 모습이 멋있나요?",
+    options: [
+      pick("남 탓보다 배운 점을 먼저 찾는다", { intellect: 3, sincerity: 2 }),
+      pick("무너져도 다시 해보려는 에너지가 있다", { energy: 4, adventure: 1 }),
+      pick("약한 모습을 숨기지 않고 나눌 줄 안다", { sincerity: 3, warmth: 2 }),
+    ],
+  },
+  {
+    category: "위기",
+    text: "중요한 선택 앞에서 내가 흔들릴 때 필요한 상대는?",
+    options: [
+      pick("내가 진짜 원하는 것을 다시 묻게 해준다", { intellect: 3, sincerity: 2 }),
+      pick("실패해도 곁에 있겠다는 안정감을 준다", { warmth: 4, steadiness: 1 }),
+      pick("새로운 가능성을 두려워하지 않게 한다", { adventure: 3, energy: 2 }),
+    ],
+  },
+  {
+    category: "위기",
+    text: "갑작스러운 변화가 생겼을 때 더 믿음직한 사람은?",
+    options: [
+      pick("우선순위를 정하고 차근차근 처리한다", { steadiness: 4, intellect: 1 }),
+      pick("변화를 새로운 기회로 해석한다", { adventure: 4, independence: 1 }),
+      pick("사람들의 마음을 살피며 분위기를 안정시킨다", { warmth: 3, sincerity: 2 }),
+    ],
+  },
+  {
+    category: "위기",
+    text: "내가 자존감이 낮아진 날 듣고 싶은 말은?",
+    options: [
+      pick("네가 버틴 시간을 내가 알고 있어", { warmth: 4, sincerity: 1 }),
+      pick("지금의 결과가 네 가능성 전체는 아니야", { intellect: 3, steadiness: 2 }),
+      pick("오늘은 내가 즐겁게 해줄게", { humor: 3, romance: 2 }),
+    ],
+  },
+  {
+    category: "위기",
+    text: "관계가 권태로워졌다고 느낄 때 필요한 변화는?",
+    options: [
+      pick("익숙한 루틴 안에서 놓친 배려를 회복한다", { warmth: 3, steadiness: 2 }),
+      pick("안 해본 경험으로 관계에 새 공기를 넣는다", { adventure: 4, energy: 1 }),
+      pick("서로의 진짜 욕구를 솔직히 다시 묻는다", { sincerity: 3, intellect: 2 }),
+    ],
+  },
+  {
+    category: "위기",
+    text: "어려운 시간을 지나고 상대에게 더 깊이 끌리는 이유는?",
+    options: [
+      pick("힘들 때 더 다정해지는 사람이라는 걸 봤다", { warmth: 4, sincerity: 1 }),
+      pick("흔들려도 중심을 잃지 않는 태도를 봤다", { steadiness: 4, independence: 1 }),
+      pick("위기에서도 웃을 수 있는 여유를 봤다", { humor: 3, energy: 2 }),
+    ],
+  },
 ];
 
-const questionBank = questionBlueprints.map(([axis, category, text], index) => ({
+const questionBank = questionBlueprints.map((question, index) => ({
   id: `q${index + 1}`,
-  axis,
-  category,
-  text,
-  options: optionSets[axis],
+  ...question,
 }));
+
+const questionMap = new Map(questionBank.map((question) => [question.id, question]));
 
 const state = {
   mode: 20,
   current: 0,
   answers: [],
+  questionOrder: [],
   started: false,
   resultToken: 0,
   targetGender: "any",
@@ -406,7 +1072,20 @@ const els = {
 };
 
 function activeQuestions() {
-  return questionBank.slice(0, state.mode);
+  if (state.questionOrder.length !== state.mode) {
+    prepareQuestionRun();
+  }
+
+  return state.questionOrder.map((id) => questionMap.get(id)).filter(Boolean);
+}
+
+function prepareQuestionRun() {
+  const questions = [...questionBank];
+  for (let index = questions.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(Math.random() * (index + 1));
+    [questions[index], questions[swapIndex]] = [questions[swapIndex], questions[index]];
+  }
+  state.questionOrder = questions.slice(0, state.mode).map((question) => question.id);
 }
 
 function showScreen(name) {
@@ -419,6 +1098,7 @@ function setMode(mode) {
   state.mode = mode;
   state.current = 0;
   state.answers = [];
+  prepareQuestionRun();
   state.started = false;
   state.resultToken += 1;
   setImageStatus("idle");
@@ -449,8 +1129,10 @@ function setPreference(preference, value) {
 }
 
 function startQuiz() {
+  prepareQuestionRun();
+  state.answers = [];
   state.started = true;
-  state.current = Math.min(state.current, state.mode - 1);
+  state.current = 0;
   showScreen("question");
   renderQuestion();
   renderProgress();
@@ -459,6 +1141,7 @@ function startQuiz() {
 function resetQuiz() {
   state.current = 0;
   state.answers = [];
+  prepareQuestionRun();
   state.started = false;
   state.resultToken += 1;
   setImageStatus("idle");
@@ -606,13 +1289,22 @@ function makeSummary(top) {
 
 function makePrompt(top) {
   const promptParts = top.map((trait) => traitMeta[trait.key].prompt);
-  return `fictional ${makeTargetPrompt()}, photorealistic Korean studio portrait, ${promptParts.join(", ")}, natural facial proportions, realistic skin texture, tasteful fashion styling, soft daylight, shallow depth of field, no readable text, synthetic person`;
+  return [
+    "Create one fictional photorealistic Korean dating-profile portrait.",
+    makeTargetPrompt(),
+    promptParts.join(", "),
+    "head-and-shoulders studio portrait, modern Korean styling, natural facial proportions, realistic skin texture, soft daylight, shallow depth of field, tasteful fashion styling",
+    "The person must look exactly within the selected age range.",
+    "No celebrity likeness, no real person, no readable text, no watermark, no extra people, no cartoon, no anime, no glamour over-retouching.",
+  ]
+    .filter(Boolean)
+    .join(" ");
 }
 
 function makeTargetPrompt() {
   const gender = preferenceMeta.gender[state.targetGender] || preferenceMeta.gender.any;
   const ageRange = preferenceMeta.ageRange[state.targetAgeRange] || preferenceMeta.ageRange["20s"];
-  return [gender.prompt, ageRange.prompt].filter(Boolean).join(" ");
+  return [gender.prompt, ageRange.prompt, ageRange.guard].filter(Boolean).join(", ");
 }
 
 function showResult() {
@@ -1272,6 +1964,7 @@ function particle(text, consonantParticle, vowelParticle) {
 }
 
 function randomSample() {
+  prepareQuestionRun();
   state.answers = activeQuestions().map((_, index) => {
     const seed = hashAnswers(`${Date.now()}-${index}-${state.mode}`);
     return Math.floor(mulberry32(seed)() * 3);
