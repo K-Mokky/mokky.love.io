@@ -37,12 +37,13 @@ test("generate-image falls back cleanly when OPENAI_API_KEY is missing", async (
 });
 
 test("generate-image proxies prompt to OpenAI without exposing the key", async () => {
-  const originals = snapshotEnv(["OPENAI_API_KEY", "OPENAI_IMAGE_MODEL", "OPENAI_IMAGE_SIZE", "OPENAI_IMAGE_QUALITY"]);
+  const originals = snapshotEnv(["OPENAI_API_KEY", "OPENAI_IMAGE_MODEL", "OPENAI_IMAGE_SIZE", "OPENAI_IMAGE_QUALITY", "OPENAI_IMAGE_FORMAT"]);
   const originalFetch = global.fetch;
   process.env.OPENAI_API_KEY = "sk-test";
   delete process.env.OPENAI_IMAGE_MODEL;
   delete process.env.OPENAI_IMAGE_SIZE;
   delete process.env.OPENAI_IMAGE_QUALITY;
+  delete process.env.OPENAI_IMAGE_FORMAT;
 
   try {
     global.fetch = async (url, options) => {
@@ -52,6 +53,7 @@ test("generate-image proxies prompt to OpenAI without exposing the key", async (
       assert.equal(body.model, "gpt-image-2");
       assert.equal(body.size, "1024x1536");
       assert.equal(body.quality, "low");
+      assert.equal(body.output_format, "jpeg");
       assert.match(body.prompt, /fictional adult ideal-type portrait/);
       assert.match(body.prompt, /warm portrait/);
 
@@ -68,7 +70,7 @@ test("generate-image proxies prompt to OpenAI without exposing the key", async (
     assert.equal(res.statusCode, 200);
     assert.equal(body.ok, true);
     assert.equal(body.model, "gpt-image-2");
-    assert.equal(body.imageDataUrl, "data:image/png;base64,ZmFrZS1wbmc=");
+    assert.equal(body.imageDataUrl, "data:image/jpeg;base64,ZmFrZS1wbmc=");
   } finally {
     global.fetch = originalFetch;
     restoreEnvSnapshot(originals);

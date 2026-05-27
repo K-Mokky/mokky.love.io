@@ -4,8 +4,10 @@ const OPENAI_IMAGE_URL = "https://api.openai.com/v1/images/generations";
 const DEFAULT_MODEL = "gpt-image-2";
 const DEFAULT_SIZE = "1024x1536";
 const DEFAULT_QUALITY = "low";
+const DEFAULT_FORMAT = "jpeg";
 const ALLOWED_SIZES = new Set(["1024x1024", "1024x1536", "1536x1024", "auto"]);
 const ALLOWED_QUALITIES = new Set(["low", "medium", "high", "auto"]);
+const ALLOWED_FORMATS = new Set(["png", "webp", "jpeg"]);
 
 module.exports = async function generateImage(req, res) {
   if (req.method !== "POST") {
@@ -52,6 +54,9 @@ module.exports = async function generateImage(req, res) {
   const quality = ALLOWED_QUALITIES.has(process.env.OPENAI_IMAGE_QUALITY)
     ? process.env.OPENAI_IMAGE_QUALITY
     : DEFAULT_QUALITY;
+  const outputFormat = ALLOWED_FORMATS.has(process.env.OPENAI_IMAGE_FORMAT)
+    ? process.env.OPENAI_IMAGE_FORMAT
+    : DEFAULT_FORMAT;
 
   const traits = Array.isArray(body.traits)
     ? body.traits.map((trait) => cleanString(trait, 40)).filter(Boolean).slice(0, 5)
@@ -71,7 +76,7 @@ module.exports = async function generateImage(req, res) {
         prompt: finalPrompt,
         size,
         quality,
-        output_format: "png",
+        output_format: outputFormat,
         background: "opaque",
       }),
     });
@@ -103,7 +108,7 @@ module.exports = async function generateImage(req, res) {
     sendJson(res, 200, {
       ok: true,
       model,
-      imageDataUrl: `data:image/png;base64,${imageBase64}`,
+      imageDataUrl: `data:image/${outputFormat};base64,${imageBase64}`,
       revisedPrompt: data?.data?.[0]?.revised_prompt || null,
       usage: data?.usage || null,
     });

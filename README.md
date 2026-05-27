@@ -62,6 +62,7 @@ OPENAI_API_KEY=sk-proj-...
 OPENAI_IMAGE_MODEL=gpt-image-2
 OPENAI_IMAGE_SIZE=1024x1536
 OPENAI_IMAGE_QUALITY=low
+OPENAI_IMAGE_FORMAT=jpeg
 ```
 
 `api/generate-image.js`가 브라우저 대신 서버에서 OpenAI API를 호출하므로 API 키가 클라이언트에 노출되지 않아요.
