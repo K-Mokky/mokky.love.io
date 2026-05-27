@@ -71,10 +71,6 @@ const preferenceMeta = {
       label: "남성",
       prompt: "Korean man",
     },
-    any: {
-      label: "성별 상관없음",
-      prompt: "Korean person",
-    },
   },
   ageRange: {
     teens: {
@@ -1030,7 +1026,7 @@ const state = {
   questionOrder: [],
   started: false,
   resultToken: 0,
-  targetGender: "any",
+  targetGender: "woman",
   targetAgeRange: "20s",
 };
 
@@ -1297,7 +1293,7 @@ function makePrompt(top) {
 }
 
 function makeTargetPrompt() {
-  const gender = preferenceMeta.gender[state.targetGender] || preferenceMeta.gender.any;
+  const gender = preferenceMeta.gender[state.targetGender] || preferenceMeta.gender.woman;
   const ageRange = preferenceMeta.ageRange[state.targetAgeRange] || preferenceMeta.ageRange["20s"];
   return [gender.prompt, ageRange.prompt, ageRange.guard].filter(Boolean).join(", ");
 }
@@ -2143,7 +2139,7 @@ function createPlacardCanvas(profile) {
 }
 
 function getPreferenceSummary() {
-  const gender = preferenceMeta.gender[state.targetGender] || preferenceMeta.gender.any;
+  const gender = preferenceMeta.gender[state.targetGender] || preferenceMeta.gender.woman;
   const ageRange = preferenceMeta.ageRange[state.targetAgeRange] || preferenceMeta.ageRange["20s"];
   return `${gender.label} · ${ageRange.label} · ${state.mode}문항`;
 }
