@@ -77,6 +77,11 @@ const preferenceMeta = {
     },
   },
   ageRange: {
+    teens: {
+      label: "10대 후반",
+      prompt: "age 18 to 19, clearly a late-teen young adult",
+      guard: "not under 18, not a child, not middle-aged, not elderly, not ajumma style, not ajusshi style, no gray hair, no deep wrinkles, age-appropriate casual styling",
+    },
     "20s": {
       label: "20대",
       prompt: "age 24 to 29, clearly a young adult in their 20s",

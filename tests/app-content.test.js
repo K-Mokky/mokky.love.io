@@ -107,3 +107,21 @@ test("Gemini copy prompt pins a youthful 20s age range", () => {
   assert.match(prompt, /selected age range/);
   assert.doesNotMatch(prompt, /adult Korean woman/);
 });
+
+test("Gemini copy prompt supports late-teen adults safely", () => {
+  const context = loadApp();
+  const prompt = vm.runInContext(
+    `(() => {
+      state.targetGender = "man";
+      state.targetAgeRange = "teens";
+      return makePrompt([{ key: "energy" }, { key: "humor" }, { key: "adventure" }]);
+    })()`,
+    context,
+  );
+
+  assert.match(prompt, /Korean man/);
+  assert.match(prompt, /age 18 to 19/);
+  assert.match(prompt, /not under 18/);
+  assert.match(prompt, /not a child/);
+  assert.match(prompt, /age-appropriate casual styling/);
+});
