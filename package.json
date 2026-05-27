@@ -1,0 +1,15 @@
+{
+  "name": "ideal-type-roulette",
+  "version": "1.0.0",
+  "private": true,
+  "description": "내 이상형을 돌려도! by KMokky",
+  "scripts": {
+    "local": "python3 -m http.server 5173",
+    "preview": "vercel dev",
+    "deploy": "vercel --prod",
+    "vercel-build": "echo \"Static app: no build step required\""
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
