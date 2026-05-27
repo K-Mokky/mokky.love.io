@@ -23,6 +23,8 @@
 
 이 프로젝트는 Vercel 정적 사이트로 바로 배포할 수 있습니다.
 
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/K-Mokky/mokky.love.io)
+
 ```bash
 npm run local
 npm run preview
@@ -34,3 +36,5 @@ npm run deploy
 - `package.json`: 로컬 실행, Vercel preview/prod 배포 명령
 
 Vercel 대시보드에서 Git 저장소를 Import해도 동일하게 배포됩니다. Build Command는 비워두거나 `npm run vercel-build`를 사용하고, Output Directory는 프로젝트 루트 그대로 두면 됩니다.
+
+GitHub 저장소: https://github.com/K-Mokky/mokky.love.io
