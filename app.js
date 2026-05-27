@@ -624,7 +624,7 @@ function showResult() {
   renderTraitList(profile.scores);
   drawPortrait(profile);
   showScreen("result");
-  setImageStatus("generated", "추가 과금 없이 브라우저에서 가상의 성인 사진 스타일 이미지를 만들었어요.");
+  setImageStatus("generated");
 }
 
 function renderTraitList(scores) {
