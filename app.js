@@ -1028,6 +1028,14 @@ const state = {
   resultToken: 0,
   targetGender: "woman",
   targetAgeRange: "20s",
+  selectedPortrait: null,
+};
+
+const portraitAssets = {
+  basePath: "/assets/portraits-webp",
+  variantCount: 5,
+  ageRanges: ["teens", "20s", "30s"],
+  anyAgeRanges: ["20s", "30s"],
 };
 
 const els = {
@@ -1091,6 +1099,7 @@ function setMode(mode) {
   state.answers = [];
   prepareQuestionRun();
   state.started = false;
+  state.selectedPortrait = null;
   state.resultToken += 1;
   setImageStatus("idle");
   els.modeButtons.forEach((button) => {
@@ -1122,6 +1131,7 @@ function setPreference(preference, value) {
 function startQuiz() {
   prepareQuestionRun();
   state.answers = [];
+  state.selectedPortrait = null;
   state.started = true;
   state.current = 0;
   showScreen("question");
@@ -1134,7 +1144,9 @@ function resetQuiz() {
   state.answers = [];
   prepareQuestionRun();
   state.started = false;
+  state.selectedPortrait = null;
   state.resultToken += 1;
+  setPortraitActionsDisabled(false);
   setImageStatus("idle");
   showScreen("start");
   renderProgress();
@@ -1300,14 +1312,16 @@ function makeTargetPrompt() {
 
 function showResult() {
   state.resultToken += 1;
+  const resultToken = state.resultToken;
   const profile = buildProfile();
   els.resultTitle.textContent = profile.title;
   els.resultSummary.textContent = profile.summary;
   els.imagePrompt.textContent = profile.prompt;
   renderTraitList(profile.scores);
-  drawPortrait(profile);
+  setPortraitActionsDisabled(true);
+  setImageStatus("generating", "결과 타입에 맞는 사진 5장 중 하나를 고르는 중이에요");
+  drawPortrait(profile, resultToken);
   showScreen("result");
-  setImageStatus("generated");
 }
 
 function renderTraitList(scores) {
@@ -1325,7 +1339,95 @@ function renderTraitList(scores) {
   });
 }
 
-function drawPortrait(profile) {
+async function drawPortrait(profile, resultToken = state.resultToken) {
+  const selected = selectPortraitAsset(profile);
+  state.selectedPortrait = selected;
+
+  try {
+    const image = await loadPortraitImage(selected.src);
+    if (resultToken !== state.resultToken) return;
+
+    drawPortraitImage(image);
+    setImageStatus("generated", makePortraitStatus(selected));
+  } catch (error) {
+    console.warn("Portrait asset failed; using canvas fallback:", selected, error);
+    if (resultToken !== state.resultToken) return;
+
+    drawFallbackPortrait(profile);
+    setImageStatus("fallback", "사진 파일을 불러오지 못해 브라우저 canvas 이미지로 보여줘요");
+  } finally {
+    if (resultToken === state.resultToken) {
+      setPortraitActionsDisabled(false);
+    }
+  }
+}
+
+function selectPortraitAsset(profile) {
+  const topTrait = profile.top?.[0]?.key && traitMeta[profile.top[0].key] ? profile.top[0].key : "warmth";
+  const gender = preferenceMeta.gender[state.targetGender] ? state.targetGender : "woman";
+  const ageRange = selectPortraitAgeRange();
+  const variant = Math.floor(Math.random() * portraitAssets.variantCount) + 1;
+  const variantName = String(variant).padStart(3, "0");
+
+  return {
+    trait: topTrait,
+    gender,
+    ageRange,
+    variant,
+    variantName,
+    src: `${portraitAssets.basePath}/${topTrait}/${gender}/${ageRange}/${variantName}.webp`,
+  };
+}
+
+function selectPortraitAgeRange() {
+  if (portraitAssets.ageRanges.includes(state.targetAgeRange)) {
+    return state.targetAgeRange;
+  }
+
+  const candidates = state.targetAgeRange === "any" ? portraitAssets.anyAgeRanges : portraitAssets.ageRanges;
+  return candidates[Math.floor(Math.random() * candidates.length)] || "20s";
+}
+
+function loadPortraitImage(src) {
+  return new Promise((resolve, reject) => {
+    if (typeof Image === "undefined") {
+      reject(new Error("Image API is unavailable."));
+      return;
+    }
+
+    const image = new Image();
+    image.decoding = "async";
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error(`Failed to load portrait asset: ${src}`));
+    image.src = src;
+  });
+}
+
+function drawPortraitImage(image) {
+  const canvas = els.portraitCanvas;
+  const ctx = canvas.getContext("2d");
+  const width = canvas.width;
+  const height = canvas.height;
+  const imageWidth = image.naturalWidth || image.width;
+  const imageHeight = image.naturalHeight || image.height;
+  const scale = Math.max(width / imageWidth, height / imageHeight);
+  const drawWidth = imageWidth * scale;
+  const drawHeight = imageHeight * scale;
+  const x = (width - drawWidth) / 2;
+  const y = (height - drawHeight) / 2;
+
+  ctx.clearRect(0, 0, width, height);
+  ctx.drawImage(image, x, y, drawWidth, drawHeight);
+}
+
+function makePortraitStatus(selected) {
+  const trait = traitMeta[selected.trait]?.label || selected.trait;
+  const gender = preferenceMeta.gender[selected.gender]?.label || selected.gender;
+  const ageRange = preferenceMeta.ageRange[selected.ageRange]?.label || selected.ageRange;
+  return `${trait} · ${gender} · ${ageRange} 사진 ${selected.variantName}/005`;
+}
+
+function drawFallbackPortrait(profile) {
   const canvas = els.portraitCanvas;
   const ctx = canvas.getContext("2d");
   const width = canvas.width;
@@ -1888,6 +1990,14 @@ function setImageStatus(status, customMessage) {
   els.imageStatus.classList.toggle("fallback", status === "fallback");
 }
 
+function setPortraitActionsDisabled(disabled) {
+  [els.downloadButton, els.sharePortraitButton, els.sharePlacardButton].forEach((button) => {
+    if (button) {
+      button.disabled = disabled;
+    }
+  });
+}
+
 function roundedRect(ctx, x, y, width, height, radius) {
   const r = Math.min(radius, width / 2, height / 2);
   ctx.beginPath();
@@ -1966,7 +2076,7 @@ function randomSample() {
 }
 
 function downloadPortrait() {
-  downloadCanvas(els.portraitCanvas, "ideal-type-kmokky.png");
+  downloadCanvas(els.portraitCanvas, makePortraitFilename("ideal-type"));
 }
 
 function downloadCanvas(canvas, filename) {
@@ -1979,11 +2089,19 @@ function downloadCanvas(canvas, filename) {
 async function sharePortrait() {
   await shareCanvasImage({
     canvas: els.portraitCanvas,
-    filename: "my-ideal-type-photo.png",
+    filename: makePortraitFilename("my-ideal-type-photo"),
     title: "나의 이상형",
     text: "나의 이상형 사진이에요.",
     button: els.sharePortraitButton,
   });
+}
+
+function makePortraitFilename(prefix) {
+  const selected = state.selectedPortrait;
+  if (!selected) {
+    return `${prefix}.png`;
+  }
+  return `${prefix}-${selected.trait}-${selected.gender}-${selected.ageRange}-${selected.variantName}.png`;
 }
 
 async function sharePlacard() {

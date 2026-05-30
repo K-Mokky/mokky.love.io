@@ -125,3 +125,48 @@ test("Gemini copy prompt supports late-teen adults safely", () => {
   assert.match(prompt, /not a child/);
   assert.match(prompt, /age-appropriate casual styling/);
 });
+
+test("portrait asset selection uses the winning trait and one of five WebP variants", () => {
+  const context = loadApp();
+  const selected = vm.runInContext(
+    `(() => {
+      const originalRandom = Math.random;
+      Math.random = () => 0.999;
+      state.targetGender = "man";
+      state.targetAgeRange = "30s";
+      const result = selectPortraitAsset({ top: [{ key: "adventure" }] });
+      Math.random = originalRandom;
+      return result;
+    })()`,
+    context,
+  );
+
+  assert.equal(selected.trait, "adventure");
+  assert.equal(selected.gender, "man");
+  assert.equal(selected.ageRange, "30s");
+  assert.equal(selected.variant, 5);
+  assert.equal(selected.src, "/assets/portraits-webp/adventure/man/30s/005.webp");
+});
+
+test("deployable WebP portraits cover every trait, gender, and age combination", () => {
+  const manifestPath = path.join(__dirname, "..", "assets", "portraits-webp", "manifest.json");
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+  const combinationCounts = new Map();
+
+  assert.equal(manifest.count, 300);
+  assert.equal(manifest.variantsPerCombination, 5);
+
+  for (const file of manifest.files) {
+    assert.equal(file.format, "webp");
+    assert.equal(file.width, 900);
+    assert.equal(file.height, 1200);
+    assert.equal(path.extname(file.file), ".webp");
+    assert.equal(fs.existsSync(path.join(__dirname, "..", "assets", "portraits-webp", file.file)), true);
+
+    const key = `${file.trait}/${file.gender}/${file.ageRange}`;
+    combinationCounts.set(key, (combinationCounts.get(key) || 0) + 1);
+  }
+
+  assert.equal(combinationCounts.size, 60);
+  assert.equal([...combinationCounts.values()].every((count) => count === 5), true);
+});
