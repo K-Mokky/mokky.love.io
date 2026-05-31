@@ -86,6 +86,30 @@ strong,
   letter-spacing: 0.02em;
 }
 
+.brand-email {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 3px;
+  color: rgba(217, 43, 120, 0.76);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  text-decoration: none;
+}
+
+.brand-email::before {
+  content: "✉";
+  font-size: 0.68rem;
+}
+
+.brand-email:hover,
+.brand-email:focus-visible {
+  color: var(--pink-deep);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 .logo-mark {
   --logo-size: 58px;
   position: relative;
@@ -534,15 +558,23 @@ strong,
 }
 
 #questionCount {
-  min-width: 74px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  min-width: 86px;
+  width: max-content;
   height: 38px;
   padding: 8px 10px;
+  box-sizing: border-box;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: #fff;
   color: var(--pink-deep);
   font-weight: 900;
+  line-height: 1;
   text-align: center;
+  white-space: nowrap;
 }
 
 .options {
@@ -606,7 +638,10 @@ strong,
 }
 
 #portraitCanvas {
-  width: min(100%, 480px);
+  display: block;
+  width: auto;
+  max-width: min(100%, 480px);
+  max-height: min(68vh, 640px);
   height: auto;
   border: 1px solid var(--line);
   border-radius: 8px;

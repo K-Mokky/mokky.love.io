@@ -9,6 +9,7 @@ function createElementStub() {
     className: "",
     dataset: {},
     disabled: false,
+    hidden: false,
     innerHTML: "",
     textContent: "",
     style: { setProperty() {} },
@@ -52,7 +53,7 @@ function loadApp() {
   return context;
 }
 
-test("app ships 100 distinct randomized questions", () => {
+test("app ships 110 distinct randomized questions", () => {
   const context = loadApp();
   const count = vm.runInContext("questionBank.length", context);
   const uniqueTexts = vm.runInContext("new Set(questionBank.map((question) => question.text)).size", context);
@@ -65,11 +66,30 @@ test("app ships 100 distinct randomized questions", () => {
     context,
   );
 
-  assert.equal(count, 100);
-  assert.equal(uniqueTexts, 100);
-  assert.equal(optionCount, 300);
-  assert.equal(uniqueOptionLabels, 300);
+  assert.equal(count, 110);
+  assert.equal(uniqueTexts, 110);
+  assert.equal(optionCount, 330);
+  assert.equal(uniqueOptionLabels, 330);
   assert.equal(vm.runInContext("questionBank.every((question) => question.options.length === 3)", context), true);
+});
+
+test("appearance preference questions are placed at the front", () => {
+  const context = loadApp();
+  const result = vm.runInContext(
+    `(() => ({
+      categories: questionBank.slice(0, 10).map((question) => question.category),
+      copy: questionBank.slice(0, 10).flatMap((question) => [
+        question.text,
+        ...question.options.map((option) => option.label),
+      ]).join(" "),
+    }))()`,
+    context,
+  );
+
+  assert.equal(result.categories.every((category) => category === "외모 취향"), true);
+  assert.match(result.copy, /여우/);
+  assert.match(result.copy, /강아지/);
+  assert.match(result.copy, /원숭이/);
 });
 
 test("selected quiz questions are shuffled and unique per run", () => {
@@ -80,6 +100,9 @@ test("selected quiz questions are shuffled and unique per run", () => {
       return {
         length: state.questionOrder.length,
         unique: new Set(state.questionOrder).size,
+        openingCategories: state.questionOrder
+          .slice(0, 10)
+          .map((id) => questionMap.get(id).category),
       };
     })()`,
     context,
@@ -87,6 +110,7 @@ test("selected quiz questions are shuffled and unique per run", () => {
 
   assert.equal(result.length, 50);
   assert.equal(result.unique, 50);
+  assert.equal(result.openingCategories.every((category) => category === "외모 취향"), true);
 });
 
 test("Gemini copy prompt pins a youthful 20s age range", () => {
@@ -105,6 +129,9 @@ test("Gemini copy prompt pins a youthful 20s age range", () => {
   assert.match(prompt, /not middle-aged/);
   assert.match(prompt, /not ajumma style/);
   assert.match(prompt, /selected age range/);
+  assert.match(prompt, /Core personality cues/);
+  assert.match(prompt, /preserve the source\/original photo aspect ratio/);
+  assert.match(prompt, /do not stretch vertically/);
   assert.doesNotMatch(prompt, /adult Korean woman/);
 });
 
@@ -145,7 +172,30 @@ test("portrait asset selection uses the winning trait and one of five WebP varia
   assert.equal(selected.gender, "man");
   assert.equal(selected.ageRange, "30s");
   assert.equal(selected.variant, 5);
+  assert.equal(selected.file, "adventure/man/30s/005.webp");
   assert.equal(selected.src, "/assets/portraits-webp/adventure/man/30s/005.webp");
+});
+
+test("portrait selection is driven primarily by opening appearance answers", () => {
+  const context = loadApp();
+  const result = vm.runInContext(
+    `(() => {
+      state.questionOrder = questionBank.slice(0, 20).map((question) => question.id);
+      state.mode = 20;
+      state.answers = Array(20).fill(0);
+      const profile = buildProfile();
+      return {
+        appearanceTop: getTopTraits(computeAppearanceScores(), 1)[0].key,
+        portraitTop: profile.portraitTop[0].key,
+        selectedTrait: selectPortraitAsset(profile).trait,
+      };
+    })()`,
+    context,
+  );
+
+  assert.equal(result.appearanceTop, "aesthetics");
+  assert.equal(result.portraitTop, "aesthetics");
+  assert.equal(result.selectedTrait, "aesthetics");
 });
 
 test("deployable WebP portraits cover every trait, gender, and age combination", () => {
@@ -160,6 +210,11 @@ test("deployable WebP portraits cover every trait, gender, and age combination",
     assert.equal(file.format, "webp");
     assert.equal(file.width, 900);
     assert.equal(file.height, 1200);
+    assert.equal(Number.isInteger(file.sourceWidth), true);
+    assert.equal(Number.isInteger(file.sourceHeight), true);
+    assert.equal(file.sourceWidth > 0, true);
+    assert.equal(file.sourceHeight > 0, true);
+    assert.equal(file.sourceAspectRatio, Number((file.sourceWidth / file.sourceHeight).toFixed(6)));
     assert.equal(path.extname(file.file), ".webp");
     assert.equal(fs.existsSync(path.join(__dirname, "..", "assets", "portraits-webp", file.file)), true);
 
@@ -171,6 +226,59 @@ test("deployable WebP portraits cover every trait, gender, and age combination",
   assert.equal([...combinationCounts.values()].every((count) => count === 5), true);
 });
 
+test("portrait canvas preserves the selected source photo ratio", () => {
+  const context = loadApp();
+  const result = vm.runInContext(
+    `(() => {
+      const calls = [];
+      const canvas = {
+        width: 900,
+        height: 1200,
+        getContext() {
+          return {
+            clearRect: (...args) => calls.push(["clearRect", ...args]),
+            drawImage: (...args) => calls.push(["drawImage", ...args]),
+          };
+        },
+      };
+      els.portraitCanvas = canvas;
+      drawPortraitImage(
+        { naturalWidth: 900, naturalHeight: 1200 },
+        { sourceWidth: 1536, sourceHeight: 1024 },
+      );
+      return {
+        width: canvas.width,
+        height: canvas.height,
+        drawArgs: calls.find((call) => call[0] === "drawImage").slice(2),
+      };
+    })()`,
+    context,
+  );
+
+  assert.equal(result.width, 1200);
+  assert.equal(result.height, 800);
+  assert.deepEqual(Array.from(result.drawArgs), [0, 0, 1200, 800]);
+});
+
+test("generated portrait status hides asset variant details", () => {
+  const context = loadApp();
+  const status = vm.runInContext(
+    `(() => {
+      els.imageStatus = {
+        hidden: false,
+        textContent: "다정함 · 여성 · 20대 사진 004/005",
+        classList: { toggle() {} },
+      };
+      setImageStatus("generated");
+      return { hidden: els.imageStatus.hidden, textContent: els.imageStatus.textContent };
+    })()`,
+    context,
+  );
+
+  assert.equal(status.hidden, true);
+  assert.equal(status.textContent, "");
+});
+
 test("result screen omits visible photo information blocks", () => {
   const markup = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
   const styles = fs.readFileSync(path.join(__dirname, "..", "styles.css"), "utf8");
@@ -179,4 +287,46 @@ test("result screen omits visible photo information blocks", () => {
   assert.doesNotMatch(markup, /image-status|imageStatus|prompt-box|imagePrompt|copyPromptButton|PHOTO STYLE/);
   assert.doesNotMatch(styles, /\.image-status|\.prompt-box/);
   assert.doesNotMatch(source, /imagePrompt|copyPromptButton|copyPrompt|PHOTO STYLE/);
+});
+
+test("question count is compact and non-wrapping", () => {
+  const context = loadApp();
+  const label = vm.runInContext("formatQuestionCount(2, 20)", context);
+  const styles = fs.readFileSync(path.join(__dirname, "..", "styles.css"), "utf8");
+
+  assert.equal(label, "2/20");
+  assert.doesNotMatch(label, /\s/);
+  assert.match(styles, /#questionCount\s*{[^}]*white-space:\s*nowrap;/s);
+});
+
+
+test("brand exposes KMokky contact email", () => {
+  const markup = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
+  const styles = fs.readFileSync(path.join(__dirname, "..", "styles.css"), "utf8");
+
+  assert.match(markup, /Made by KMokky/);
+  assert.match(markup, /mailto:mokky@mokky\.store/);
+  assert.match(markup, /mokky@mokky\.store/);
+  assert.match(styles, /\.brand-email/);
+});
+
+
+test("wrapped canvas text returns the next safe baseline", () => {
+  const context = loadApp();
+  const result = vm.runInContext(
+    `(() => {
+      const drawn = [];
+      const ctx = {
+        measureText(value) { return { width: String(value).length * 10 }; },
+        fillText(...args) { drawn.push(args); },
+      };
+      const nextY = drawWrappedText(ctx, "alpha beta gamma delta", 0, 100, 95, 30, 3);
+      return { nextY, drawnY: Array.from(drawn.map((entry) => entry[2])) };
+    })()`,
+    context,
+  );
+
+  assert.equal(result.drawnY.length, 3);
+  assert.deepEqual(Array.from(result.drawnY), [100, 130, 160]);
+  assert.equal(result.nextY, 190);
 });

@@ -2,61 +2,61 @@ const traitMeta = {
   warmth: {
     label: "다정함",
     phrase: "따뜻한 눈빛",
-    prompt: "warm gaze, gentle smile",
+    prompt: "warm attentive gaze, gentle closed-mouth smile, relaxed shoulders, approachable body language, soft pastel styling",
     color: "#ff6f9f",
   },
   energy: {
     label: "활기",
     phrase: "밝은 리듬",
-    prompt: "bright energetic presence",
+    prompt: "bright energetic presence, lively eyes, fresh confident smile, crisp casual outfit, subtle motion in hair or posture",
     color: "#f4b63f",
   },
   humor: {
     label: "유머",
     phrase: "장난기 있는 미소",
-    prompt: "playful smile, witty charm",
+    prompt: "playful asymmetrical smile, witty charm, expressive eyebrows, friendly teasing mood, lighthearted profile-photo energy",
     color: "#21b7a8",
   },
   intellect: {
     label: "지성",
     phrase: "차분한 집중력",
-    prompt: "thoughtful eyes, refined intellectual mood",
+    prompt: "thoughtful focused eyes, refined intellectual mood, composed expression, minimal elegant styling, quiet depth",
     color: "#5777e8",
   },
   steadiness: {
     label: "안정감",
     phrase: "믿음직한 분위기",
-    prompt: "calm composed posture",
+    prompt: "calm composed posture, grounded presence, steady eye contact, neat timeless outfit, dependable gentle confidence",
     color: "#6abf69",
   },
   aesthetics: {
     label: "감각",
     phrase: "세련된 취향",
-    prompt: "stylish details, artful outfit",
+    prompt: "stylish details, artful outfit coordination, tasteful accessories, balanced color palette, fashion-editorial polish without looking staged",
     color: "#b56cff",
   },
   romance: {
     label: "로맨스",
     phrase: "부드러운 설렘",
-    prompt: "soft romantic lighting",
+    prompt: "soft romantic lighting, tender eye contact, delicate smile, warm highlights on skin and hair, dreamy but realistic atmosphere",
     color: "#ff8bbb",
   },
   independence: {
     label: "자기색",
     phrase: "선명한 자기만의 결",
-    prompt: "confident unique styling",
+    prompt: "confident unique styling, distinctive personal taste, self-possessed expression, slightly unconventional detail, modern individuality",
     color: "#2b2d42",
   },
   adventure: {
     label: "모험심",
     phrase: "가벼운 발걸음",
-    prompt: "free-spirited casual style",
+    prompt: "free-spirited casual style, outdoorsy ease, open curious expression, travel-ready layers, natural wind-swept texture",
     color: "#ff7a45",
   },
   sincerity: {
     label: "진정성",
     phrase: "솔직하고 깊은 태도",
-    prompt: "honest expression, sincere presence",
+    prompt: "honest expression, sincere presence, unguarded eyes, natural imperfect smile, intimate trustworthy profile-photo mood",
     color: "#8d6e63",
   },
 };
@@ -100,7 +100,100 @@ function pick(label, scores) {
   return { label, scores };
 }
 
+const appearanceCategory = "외모 취향";
+const portraitAppearanceWeight = 0.7;
+
 const questionBlueprints = [
+  {
+    category: "외모 취향",
+    text: "멀리서 봤을 때 먼저 눈길이 가는 인상은 어떤 쪽인가요?",
+    options: [
+      pick("눈매가 또렷해서 살짝 여우처럼 영리해 보인다", { independence: 3, aesthetics: 2 }),
+      pick("웃는 얼굴이 강아지처럼 편하고 밝다", { warmth: 3, energy: 2 }),
+      pick("표정이 재빠르게 바뀌어 원숭이처럼 장난기가 돈다", { humor: 3, adventure: 2 }),
+    ],
+  },
+  {
+    category: "외모 취향",
+    text: "사진 한 장만 봐도 호감이 생기는 분위기는 무엇인가요?",
+    options: [
+      pick("고양이처럼 차분하고 도도한 여백이 있다", { aesthetics: 3, independence: 2 }),
+      pick("토끼처럼 맑고 부드러운 첫인상이 남는다", { romance: 3, warmth: 2 }),
+      pick("곰처럼 든든하고 포근한 안정감이 느껴진다", { steadiness: 3, sincerity: 2 }),
+    ],
+  },
+  {
+    category: "외모 취향",
+    text: "상대의 눈매에서 가장 끌리는 결은 어떤 느낌인가요?",
+    options: [
+      pick("가늘고 선명해서 생각을 숨긴 듯한 눈빛", { intellect: 3, independence: 2 }),
+      pick("둥글고 선해서 금방 마음이 풀리는 눈빛", { warmth: 4, sincerity: 1 }),
+      pick("반짝이며 장난을 먼저 걸어오는 눈빛", { humor: 3, energy: 2 }),
+    ],
+  },
+  {
+    category: "외모 취향",
+    text: "웃는 얼굴을 봤을 때 오래 기억나는 포인트는 무엇인가요?",
+    options: [
+      pick("입꼬리가 살짝 올라가 능청스럽게 설렌다", { humor: 2, romance: 3 }),
+      pick("활짝 웃을 때 주변까지 밝아지는 느낌이 있다", { energy: 3, warmth: 2 }),
+      pick("작게 웃어도 진심이 보여 오래 믿음이 간다", { sincerity: 3, steadiness: 2 }),
+    ],
+  },
+  {
+    category: "외모 취향",
+    text: "얼굴선이나 전체 윤곽에서 더 마음이 가는 쪽은?",
+    options: [
+      pick("선이 날렵해 세련되고 민첩한 느낌", { aesthetics: 3, adventure: 2 }),
+      pick("선이 부드러워 편안하고 다정한 느낌", { warmth: 3, romance: 2 }),
+      pick("균형이 단정해 차분하고 믿음직한 느낌", { steadiness: 3, intellect: 2 }),
+    ],
+  },
+  {
+    category: "외모 취향",
+    text: "처음 마주 앉았을 때 더 끌리는 표정의 온도는?",
+    options: [
+      pick("살짝 새침해서 더 알고 싶어지는 표정", { independence: 3, aesthetics: 2 }),
+      pick("처음부터 경계가 풀리는 순한 표정", { warmth: 4, sincerity: 1 }),
+      pick("뭔가 사고 칠 것 같은 유쾌한 표정", { humor: 4, energy: 1 }),
+    ],
+  },
+  {
+    category: "외모 취향",
+    text: "헤어스타일에서 자연스럽게 호감이 생기는 지점은?",
+    options: [
+      pick("깔끔하게 정돈되어 자기관리가 느껴진다", { steadiness: 3, aesthetics: 2 }),
+      pick("부드럽고 자연스러워 편하게 다가가고 싶다", { warmth: 3, romance: 2 }),
+      pick("조금 개성 있어 자기 색이 바로 보인다", { independence: 4, adventure: 1 }),
+    ],
+  },
+  {
+    category: "외모 취향",
+    text: "상대의 분위기를 동물상으로 말한다면 어느 쪽이 더 궁금한가요?",
+    options: [
+      pick("여우상처럼 눈치 빠르고 매력의 여백이 있는 타입", { intellect: 2, aesthetics: 3 }),
+      pick("강아지상처럼 표현이 솔직하고 가까운 타입", { warmth: 3, sincerity: 2 }),
+      pick("원숭이상처럼 재치 있고 움직임이 생동감 있는 타입", { humor: 3, energy: 2 }),
+    ],
+  },
+  {
+    category: "외모 취향",
+    text: "옆모습이나 실루엣에서 마음이 가는 순간은 언제인가요?",
+    options: [
+      pick("자세가 곧고 단정해 신뢰감이 생긴다", { steadiness: 4, sincerity: 1 }),
+      pick("몸짓이 가볍고 활발해 함께 움직이고 싶다", { energy: 3, adventure: 2 }),
+      pick("작은 제스처까지 분위기 있게 남는다", { aesthetics: 3, romance: 2 }),
+    ],
+  },
+  {
+    category: "외모 취향",
+    text: "결국 외모에서 가장 오래 남는 건 어떤 요소인가요?",
+    options: [
+      pick("한눈에 설명되지 않는 묘한 개성", { independence: 3, aesthetics: 2 }),
+      pick("볼수록 마음이 놓이는 선한 인상", { warmth: 3, steadiness: 2 }),
+      pick("표정마다 이야기가 달라지는 생기", { energy: 2, humor: 3 }),
+    ],
+  },
   {
     category: "첫만남",
     text: "약속 장소에 먼저 도착한 상대가 어떻게 기다리고 있으면 끌리나요?",
@@ -1033,9 +1126,12 @@ const state = {
 
 const portraitAssets = {
   basePath: "/assets/portraits-webp",
+  manifestPath: "/assets/portraits-webp/manifest.json",
   variantCount: 5,
   ageRanges: ["teens", "20s", "30s"],
   anyAgeRanges: ["20s", "30s"],
+  manifestByFile: null,
+  manifestPromise: null,
 };
 
 const els = {
@@ -1077,12 +1173,13 @@ function activeQuestions() {
 }
 
 function prepareQuestionRun() {
-  const questions = [...questionBank];
-  for (let index = questions.length - 1; index > 0; index -= 1) {
+  const openingQuestions = questionBank.filter((question) => question.category === appearanceCategory);
+  const shuffledQuestions = questionBank.filter((question) => question.category !== appearanceCategory);
+  for (let index = shuffledQuestions.length - 1; index > 0; index -= 1) {
     const swapIndex = Math.floor(Math.random() * (index + 1));
-    [questions[index], questions[swapIndex]] = [questions[swapIndex], questions[index]];
+    [shuffledQuestions[index], shuffledQuestions[swapIndex]] = [shuffledQuestions[swapIndex], shuffledQuestions[index]];
   }
-  state.questionOrder = questions.slice(0, state.mode).map((question) => question.id);
+  state.questionOrder = [...openingQuestions, ...shuffledQuestions].slice(0, state.mode).map((question) => question.id);
 }
 
 function showScreen(name) {
@@ -1155,7 +1252,8 @@ function renderQuestion() {
   const question = questions[state.current];
   els.questionCategory.textContent = question.category;
   els.questionText.textContent = question.text;
-  els.questionCount.textContent = `${state.current + 1} / ${state.mode}`;
+  els.questionCount.textContent = formatQuestionCount(state.current + 1, state.mode);
+  els.questionCount.setAttribute("aria-label", `${state.current + 1}번째 질문, 전체 ${state.mode}문항`);
   els.options.innerHTML = "";
 
   question.options.forEach((option, index) => {
@@ -1172,6 +1270,10 @@ function renderQuestion() {
   });
 
   els.backButton.disabled = state.current === 0;
+}
+
+function formatQuestionCount(current, total) {
+  return `${current}/${total}`;
 }
 
 function selectAnswer(optionIndex) {
@@ -1225,8 +1327,21 @@ function renderDots() {
 }
 
 function computeScores() {
+  return computeScoresFor(() => true);
+}
+
+function computeAppearanceScores() {
+  return computeScoresFor((question) => question.category === appearanceCategory);
+}
+
+function computeNonAppearanceScores() {
+  return computeScoresFor((question) => question.category !== appearanceCategory);
+}
+
+function computeScoresFor(includeQuestion) {
   const scores = Object.fromEntries(Object.keys(traitMeta).map((trait) => [trait, 0]));
   activeQuestions().forEach((question, index) => {
+    if (!includeQuestion(question)) return;
     const answerIndex = state.answers[index];
     if (!Number.isInteger(answerIndex)) return;
     const selected = question.options[answerIndex];
@@ -1235,6 +1350,31 @@ function computeScores() {
     });
   });
   return scores;
+}
+
+function computePortraitScores() {
+  const appearanceScores = computeAppearanceScores();
+  const nonAppearanceScores = computeNonAppearanceScores();
+  const appearanceShare = normalizeScoreShare(appearanceScores);
+  const nonAppearanceShare = normalizeScoreShare(nonAppearanceScores);
+  const personalityWeight = 1 - portraitAppearanceWeight;
+
+  return Object.fromEntries(
+    Object.keys(traitMeta).map((trait) => [
+      trait,
+      appearanceShare[trait] * portraitAppearanceWeight + nonAppearanceShare[trait] * personalityWeight,
+    ]),
+  );
+}
+
+function normalizeScoreShare(scores) {
+  const total = Object.values(scores).reduce((sum, value) => sum + value, 0);
+  if (total <= 0) {
+    const fallback = 1 / Object.keys(traitMeta).length;
+    return Object.fromEntries(Object.keys(traitMeta).map((trait) => [trait, fallback]));
+  }
+
+  return Object.fromEntries(Object.entries(scores).map(([trait, value]) => [trait, value / total]));
 }
 
 function getTopTraits(scores, limit = 3) {
@@ -1257,11 +1397,13 @@ function getNormalizedTraits(scores) {
 
 function buildProfile() {
   const scores = computeScores();
+  const portraitScores = computePortraitScores();
   const top = getTopTraits(scores, 4);
+  const portraitTop = getTopTraits(portraitScores, 4);
   const title = makeTitle(top);
   const summary = makeSummary(top);
-  const prompt = makePrompt(top);
-  return { scores, top, title, summary, prompt };
+  const prompt = makePrompt(portraitTop);
+  return { scores, portraitScores, top, portraitTop, title, summary, prompt };
 }
 
 function makeTitle(top) {
@@ -1291,12 +1433,15 @@ function makeSummary(top) {
 function makePrompt(top) {
   const promptParts = top.map((trait) => traitMeta[trait.key].prompt);
   return [
-    "Create one fictional photorealistic Korean dating-profile portrait.",
+    "Create one fictional photorealistic Korean dating-profile portrait of a non-celebrity person.",
     makeTargetPrompt(),
-    promptParts.join(", "),
-    "head-and-shoulders studio portrait, modern Korean styling, natural facial proportions, realistic skin texture, soft daylight, shallow depth of field, tasteful fashion styling",
+    `Core personality cues: ${promptParts.join("; ")}.`,
+    "Composition: upper-body to head-and-shoulders portrait, centered face, relaxed natural posture, eye-level camera, 50-85mm lens look, clean framing with face and shoulders fully natural.",
+    "Styling: contemporary Korean dating-app profile styling, coordinated outfit, subtle accessories, natural makeup or grooming, colors harmonized with the personality cues, polished but not over-staged.",
+    "Lighting and texture: soft daylight from a large window, gentle rim light, realistic skin texture with pores, natural hair detail, clear catchlights, shallow depth of field, warm uncluttered studio or cafe-like background.",
+    "Aspect ratio: preserve the source/original photo aspect ratio, do not stretch vertically, do not squeeze horizontally, keep face and shoulders naturally proportioned.",
     "The person must look exactly within the selected age range.",
-    "No celebrity likeness, no real person, no readable text, no watermark, no extra people, no cartoon, no anime, no glamour over-retouching.",
+    "No celebrity likeness, no real person, no readable text, no watermark, no extra people, no cartoon, no anime, no plastic skin, no glamour over-retouching, no exaggerated facial symmetry.",
   ]
     .filter(Boolean)
     .join(" ");
@@ -1337,15 +1482,19 @@ function renderTraitList(scores) {
 }
 
 async function drawPortrait(profile, resultToken = state.resultToken) {
-  const selected = selectPortraitAsset(profile);
+  let selected = selectPortraitAsset(profile);
   state.selectedPortrait = selected;
 
   try {
+    selected = await resolvePortraitAssetDetails(selected);
+    state.selectedPortrait = selected;
+    if (resultToken !== state.resultToken) return;
+
     const image = await loadPortraitImage(selected.src);
     if (resultToken !== state.resultToken) return;
 
-    drawPortraitImage(image);
-    setImageStatus("generated", makePortraitStatus(selected));
+    drawPortraitImage(image, selected);
+    setImageStatus("generated");
   } catch (error) {
     console.warn("Portrait asset failed; using canvas fallback:", selected, error);
     if (resultToken !== state.resultToken) return;
@@ -1360,7 +1509,12 @@ async function drawPortrait(profile, resultToken = state.resultToken) {
 }
 
 function selectPortraitAsset(profile) {
-  const topTrait = profile.top?.[0]?.key && traitMeta[profile.top[0].key] ? profile.top[0].key : "warmth";
+  const topTrait =
+    profile.portraitTop?.[0]?.key && traitMeta[profile.portraitTop[0].key]
+      ? profile.portraitTop[0].key
+      : profile.top?.[0]?.key && traitMeta[profile.top[0].key]
+        ? profile.top[0].key
+        : "warmth";
   const gender = preferenceMeta.gender[state.targetGender] ? state.targetGender : "woman";
   const ageRange = selectPortraitAgeRange();
   const variant = Math.floor(Math.random() * portraitAssets.variantCount) + 1;
@@ -1372,6 +1526,7 @@ function selectPortraitAsset(profile) {
     ageRange,
     variant,
     variantName,
+    file: `${topTrait}/${gender}/${ageRange}/${variantName}.webp`,
     src: `${portraitAssets.basePath}/${topTrait}/${gender}/${ageRange}/${variantName}.webp`,
   };
 }
@@ -1400,32 +1555,77 @@ function loadPortraitImage(src) {
   });
 }
 
-function drawPortraitImage(image) {
-  const canvas = els.portraitCanvas;
-  const ctx = canvas.getContext("2d");
-  const width = canvas.width;
-  const height = canvas.height;
-  const imageWidth = image.naturalWidth || image.width;
-  const imageHeight = image.naturalHeight || image.height;
-  const scale = Math.max(width / imageWidth, height / imageHeight);
-  const drawWidth = imageWidth * scale;
-  const drawHeight = imageHeight * scale;
-  const x = (width - drawWidth) / 2;
-  const y = (height - drawHeight) / 2;
+async function resolvePortraitAssetDetails(selected) {
+  const manifestByFile = await loadPortraitManifest();
+  const details = manifestByFile?.get(selected.file);
+  if (!details) return selected;
 
-  ctx.clearRect(0, 0, width, height);
-  ctx.drawImage(image, x, y, drawWidth, drawHeight);
+  return {
+    ...selected,
+    sourceWidth: details.sourceWidth,
+    sourceHeight: details.sourceHeight,
+  };
 }
 
-function makePortraitStatus(selected) {
-  const trait = traitMeta[selected.trait]?.label || selected.trait;
-  const gender = preferenceMeta.gender[selected.gender]?.label || selected.gender;
-  const ageRange = preferenceMeta.ageRange[selected.ageRange]?.label || selected.ageRange;
-  return `${trait} · ${gender} · ${ageRange} 사진 ${selected.variantName}/005`;
+async function loadPortraitManifest() {
+  if (portraitAssets.manifestByFile) return portraitAssets.manifestByFile;
+  if (typeof fetch !== "function") return null;
+
+  if (!portraitAssets.manifestPromise) {
+    portraitAssets.manifestPromise = fetch(portraitAssets.manifestPath)
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`Portrait manifest request failed: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then((manifest) => {
+        portraitAssets.manifestByFile = new Map(
+          (manifest.files || [])
+            .filter((entry) => entry.file && entry.sourceWidth && entry.sourceHeight)
+            .map((entry) => [entry.file, entry]),
+        );
+        return portraitAssets.manifestByFile;
+      })
+      .catch((error) => {
+        console.warn("Portrait manifest failed; using encoded image ratio:", error);
+        portraitAssets.manifestPromise = null;
+        return null;
+      });
+  }
+
+  return portraitAssets.manifestPromise;
+}
+
+function drawPortraitImage(image, selected = {}) {
+  const canvas = els.portraitCanvas;
+  const imageWidth = image.naturalWidth || image.width;
+  const imageHeight = image.naturalHeight || image.height;
+  const sourceWidth = selected.sourceWidth || imageWidth;
+  const sourceHeight = selected.sourceHeight || imageHeight;
+  const { width, height } = setPortraitCanvasSize(sourceWidth, sourceHeight);
+  const ctx = canvas.getContext("2d");
+
+  ctx.clearRect(0, 0, width, height);
+  ctx.drawImage(image, 0, 0, width, height);
+}
+
+function setPortraitCanvasSize(sourceWidth, sourceHeight) {
+  const canvas = els.portraitCanvas;
+  const safeWidth = Number(sourceWidth) > 0 ? Number(sourceWidth) : 900;
+  const safeHeight = Number(sourceHeight) > 0 ? Number(sourceHeight) : 1200;
+  const scale = 1200 / Math.max(safeWidth, safeHeight);
+  const width = Math.max(1, Math.round(safeWidth * scale));
+  const height = Math.max(1, Math.round(safeHeight * scale));
+
+  if (canvas.width !== width) canvas.width = width;
+  if (canvas.height !== height) canvas.height = height;
+  return { width, height };
 }
 
 function drawFallbackPortrait(profile) {
   const canvas = els.portraitCanvas;
+  setPortraitCanvasSize(900, 1200);
   const ctx = canvas.getContext("2d");
   const width = canvas.width;
   const height = canvas.height;
@@ -1977,12 +2177,14 @@ function drawPhotoFinish(ctx, width, height, rand) {
 function setImageStatus(status, customMessage) {
   if (!els.imageStatus) return;
   const messages = {
-    idle: "사진 스타일 이미지 준비",
-    generating: "브라우저에서 사진 스타일 이미지를 만드는 중이에요",
-    generated: "사진 스타일 이미지 생성 완료",
+    idle: "",
+    generating: "사진을 불러오는 중이에요",
+    generated: "",
     fallback: "브라우저 canvas 이미지로 보여줘요",
   };
-  els.imageStatus.textContent = customMessage || messages[status] || messages.idle;
+  const message = customMessage ?? messages[status] ?? messages.idle;
+  els.imageStatus.textContent = message;
+  els.imageStatus.hidden = !message;
   els.imageStatus.classList.toggle("generated", status === "generated");
   els.imageStatus.classList.toggle("fallback", status === "fallback");
 }
@@ -2205,16 +2407,16 @@ function createPlacardCanvas(profile) {
   let y = photoY + photoH + 72;
   ctx.fillStyle = "#24212b";
   ctx.font = "900 44px system-ui, sans-serif";
-  y = drawWrappedText(ctx, profile.title, 94, y, width - 188, 54, 2) + 20;
+  y = drawWrappedText(ctx, profile.title, 94, y, width - 188, 54, 2) + 30;
 
   ctx.fillStyle = "rgba(36,33,43,0.72)";
   ctx.font = "700 29px system-ui, sans-serif";
-  y = drawWrappedText(ctx, profile.summary, 94, y, width - 188, 42, 5) + 26;
+  y = drawWrappedText(ctx, profile.summary, 94, y, width - 188, 42, 5) + 38;
 
   ctx.fillStyle = "rgba(217,43,120,0.92)";
   ctx.font = "900 25px system-ui, sans-serif";
   ctx.fillText("TOP TRAITS", 94, y);
-  y += 28;
+  y += 38;
 
   const traits = getNormalizedTraits(profile.scores).slice(0, 5);
   traits.forEach((trait, index) => {
@@ -2232,15 +2434,18 @@ function createPlacardCanvas(profile) {
     ctx.fillText(`${trait.percent}`, x + chipW - 22, rowY + 31);
     ctx.textAlign = "left";
   });
-  y += 220;
+  y += Math.ceil(traits.length / 2) * 64 + 20;
 
-  const noteY = Math.min(y + 28, height - 150);
+  const noteText = "검사 내용은 어디에도 저장되지 않고 결과 표시 후 파기돼요. 결과 저장용 DB 자체도 존재하지 않아요.";
+  ctx.font = "800 22px system-ui, sans-serif";
+  const noteTextHeight = getWrappedTextHeight(ctx, noteText, width - 240, 28, 2);
+  const noteH = noteTextHeight + 48;
+  const noteY = Math.min(y + 28, height - noteH - 86);
   ctx.fillStyle = "rgba(33,183,168,0.1)";
-  roundedRect(ctx, 94, noteY, width - 188, 64, 18);
+  roundedRect(ctx, 94, noteY, width - 188, noteH, 18);
   ctx.fill();
   ctx.fillStyle = "rgba(36,33,43,0.62)";
-  ctx.font = "800 22px system-ui, sans-serif";
-  drawWrappedText(ctx, "검사 내용은 어디에도 저장되지 않고 결과 표시 후 파기돼요. 결과 저장용 DB 자체도 존재하지 않아요.", 120, noteY + 40, width - 240, 28, 2);
+  drawWrappedText(ctx, noteText, 120, noteY + 34, width - 240, 28, 2);
 
   return canvas;
 }
@@ -2252,13 +2457,34 @@ function getPreferenceSummary() {
 }
 
 function drawWrappedText(ctx, text, x, y, maxWidth, lineHeight, maxLines = Number.POSITIVE_INFINITY) {
+  const lines = getWrappedTextLines(ctx, text, maxWidth);
+  const visibleLines = lines.slice(0, maxLines);
+  visibleLines.forEach((visibleLine, index) => {
+    const suffix = index === maxLines - 1 && lines.length > maxLines ? "…" : "";
+    ctx.fillText(`${visibleLine}${suffix}`, x, y + index * lineHeight);
+  });
+
+  return y + visibleLines.length * lineHeight;
+}
+
+function getWrappedTextHeight(ctx, text, maxWidth, lineHeight, maxLines = Number.POSITIVE_INFINITY) {
+  return Math.min(getWrappedTextLines(ctx, text, maxWidth).length, maxLines) * lineHeight;
+}
+
+function getWrappedTextLines(ctx, text, maxWidth) {
   const words = String(text).split(/\s+/).filter(Boolean);
   const lines = [];
   let line = "";
+  const measure = (value) => {
+    if (typeof ctx.measureText === "function") {
+      return ctx.measureText(value).width;
+    }
+    return String(value).length * 14;
+  };
 
   words.forEach((word) => {
     const testLine = line ? `${line} ${word}` : word;
-    if (ctx.measureText(testLine).width <= maxWidth) {
+    if (measure(testLine) <= maxWidth) {
       line = testLine;
       return;
     }
@@ -2267,14 +2493,7 @@ function drawWrappedText(ctx, text, x, y, maxWidth, lineHeight, maxLines = Numbe
   });
 
   if (line) lines.push(line);
-
-  const visibleLines = lines.slice(0, maxLines);
-  visibleLines.forEach((visibleLine, index) => {
-    const suffix = index === maxLines - 1 && lines.length > maxLines ? "…" : "";
-    ctx.fillText(`${visibleLine}${suffix}`, x, y + index * lineHeight);
-  });
-
-  return y + Math.max(visibleLines.length - 1, 0) * lineHeight;
+  return lines.length ? lines : [""];
 }
 
 function varColor(name, fallback) {
