@@ -170,3 +170,13 @@ test("deployable WebP portraits cover every trait, gender, and age combination",
   assert.equal(combinationCounts.size, 60);
   assert.equal([...combinationCounts.values()].every((count) => count === 5), true);
 });
+
+test("result screen omits visible photo information blocks", () => {
+  const markup = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
+  const styles = fs.readFileSync(path.join(__dirname, "..", "styles.css"), "utf8");
+  const source = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+
+  assert.doesNotMatch(markup, /image-status|imageStatus|prompt-box|imagePrompt|copyPromptButton|PHOTO STYLE/);
+  assert.doesNotMatch(styles, /\.image-status|\.prompt-box/);
+  assert.doesNotMatch(source, /imagePrompt|copyPromptButton|copyPrompt|PHOTO STYLE/);
+});

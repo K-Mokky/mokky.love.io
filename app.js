@@ -1059,7 +1059,6 @@ const els = {
   resultTitle: document.querySelector("#resultTitle"),
   resultSummary: document.querySelector("#resultSummary"),
   traitList: document.querySelector("#traitList"),
-  imagePrompt: document.querySelector("#imagePrompt"),
   imageStatus: document.querySelector("#imageStatus"),
   portraitCanvas: document.querySelector("#portraitCanvas"),
   downloadButton: document.querySelector("#downloadButton"),
@@ -1067,7 +1066,6 @@ const els = {
   sharePlacardButton: document.querySelector("#sharePlacardButton"),
   restartButton: document.querySelector("#restartButton"),
   restartTopButton: document.querySelector("#restartTopButton"),
-  copyPromptButton: document.querySelector("#copyPromptButton"),
 };
 
 function activeQuestions() {
@@ -1316,7 +1314,6 @@ function showResult() {
   const profile = buildProfile();
   els.resultTitle.textContent = profile.title;
   els.resultSummary.textContent = profile.summary;
-  els.imagePrompt.textContent = profile.prompt;
   renderTraitList(profile.scores);
   setPortraitActionsDisabled(true);
   setImageStatus("generating", "결과 타입에 맞는 사진 5장 중 하나를 고르는 중이에요");
@@ -2237,21 +2234,13 @@ function createPlacardCanvas(profile) {
   });
   y += 220;
 
-  ctx.fillStyle = "rgba(217,43,120,0.92)";
-  ctx.font = "900 23px system-ui, sans-serif";
-  ctx.fillText("PHOTO STYLE", 94, y);
-  y += 34;
-
-  ctx.fillStyle = "rgba(36,33,43,0.58)";
-  ctx.font = "700 21px system-ui, sans-serif";
-  y = drawWrappedText(ctx, profile.prompt, 94, y, width - 188, 31, 4) + 28;
-
+  const noteY = Math.min(y + 28, height - 150);
   ctx.fillStyle = "rgba(33,183,168,0.1)";
-  roundedRect(ctx, 94, height - 150, width - 188, 64, 18);
+  roundedRect(ctx, 94, noteY, width - 188, 64, 18);
   ctx.fill();
   ctx.fillStyle = "rgba(36,33,43,0.62)";
   ctx.font = "800 22px system-ui, sans-serif";
-  drawWrappedText(ctx, "검사 내용은 어디에도 저장되지 않고 결과 표시 후 파기돼요. 결과 저장용 DB 자체도 존재하지 않아요.", 120, height - 110, width - 240, 28, 2);
+  drawWrappedText(ctx, "검사 내용은 어디에도 저장되지 않고 결과 표시 후 파기돼요. 결과 저장용 DB 자체도 존재하지 않아요.", 120, noteY + 40, width - 240, 28, 2);
 
   return canvas;
 }
@@ -2292,22 +2281,6 @@ function varColor(name, fallback) {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
 }
 
-async function copyPrompt() {
-  const text = els.imagePrompt.textContent;
-  try {
-    await navigator.clipboard.writeText(text);
-    els.copyPromptButton.textContent = "✓";
-    setTimeout(() => {
-      els.copyPromptButton.textContent = "⧉";
-    }, 1100);
-  } catch {
-    els.copyPromptButton.textContent = "!";
-    setTimeout(() => {
-      els.copyPromptButton.textContent = "⧉";
-    }, 1100);
-  }
-}
-
 els.modeButtons.forEach((button) => {
   button.addEventListener("click", () => setMode(Number(button.dataset.mode)));
 });
@@ -2325,6 +2298,5 @@ els.sharePortraitButton.addEventListener("click", sharePortrait);
 els.sharePlacardButton.addEventListener("click", sharePlacard);
 els.restartButton.addEventListener("click", resetQuiz);
 els.restartTopButton.addEventListener("click", resetQuiz);
-els.copyPromptButton.addEventListener("click", copyPrompt);
 
 setMode(20);
