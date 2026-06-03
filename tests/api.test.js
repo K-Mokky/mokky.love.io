@@ -119,7 +119,8 @@ test("feedback only allows POST", async () => {
 
 test("share preview page exposes Open Graph image and main-test CTA", async () => {
   const res = createRes();
-  const imageUrl = "https://example.supabase.co/storage/v1/object/public/ideal-type-shares/shares/20260603/result.jpg";
+  const objectPath = "shares/20260603/c1234567890abcdef12345678.jpg";
+  const imageUrl = `https://example.supabase.co/storage/v1/object/public/ideal-type-shares/${objectPath}`;
 
   await withShareEnvironment(
     {
@@ -134,7 +135,7 @@ test("share preview page exposes Open Graph image and main-test CTA", async () =
             host: "love.mokky.store",
             "x-forwarded-proto": "https",
           },
-          `/share?img=${encodeURIComponent(imageUrl)}&title=${encodeURIComponent("내 이상형의 플랜카드")}&desc=${encodeURIComponent("결과를 확인해보세요.")}`,
+          `/share/${objectPath}`,
         ),
         res,
       );
@@ -147,9 +148,11 @@ test("share preview page exposes Open Graph image and main-test CTA", async () =
   assert.match(html, /property="og:image"/);
   assert.match(html, /meta name="twitter:card" content="summary_large_image"/);
   assert.match(html, /내 이상형의 플랜카드/);
+  assert.match(html, /나의 이상형 사진과 결과 정보를 확인하고 직접 테스트해보세요/);
   assert.match(html, /테스트하러 가기/);
   assert.match(html, /href="https:\/\/love\.mokky\.store"/);
   assert.match(html, new RegExp(escapeRegExp(imageUrl)));
+  assert.match(html, /href="https:\/\/love\.mokky\.store\/share\/shares\/20260603\/c1234567890abcdef12345678\.jpg"/);
 });
 
 test("share uploads generated image to Supabase storage and returns a share URL", async () => {
@@ -191,10 +194,11 @@ test("share uploads generated image to Supabase storage and returns a share URL"
   const body = res.json();
   assert.equal(res.statusCode, 200);
   assert.equal(body.ok, true);
-  assert.equal(body.shareUrl.startsWith("https://love.mokky.store/share?"), true);
+  assert.equal(body.shareUrl.startsWith("https://love.mokky.store/share/shares/"), true);
+  assert.equal(body.shareUrl.length < 100, true);
   assert.equal(body.imageUrl.startsWith("https://example.supabase.co/storage/v1/object/public/ideal-type-shares/shares/"), true);
   assert.equal(calls.length, 1);
-  assert.match(calls[0].url, /^https:\/\/example\.supabase\.co\/storage\/v1\/object\/ideal-type-shares\/shares\/\d{8}\/portrait-/);
+  assert.match(calls[0].url, /^https:\/\/example\.supabase\.co\/storage\/v1\/object\/ideal-type-shares\/shares\/\d{8}\/p[0-9a-f]{24}\.jpg$/);
   assert.equal(calls[0].options.method, "POST");
   assert.equal(calls[0].options.headers["Content-Type"], "image/jpeg");
   assert.equal(calls[0].options.headers.apikey, "sb_publishable_test");

@@ -18,6 +18,14 @@ const SUPABASE_KEY_NAMES = [
   "SUPABASE_ANON_KEY",
 ];
 const SHARE_KINDS = new Set(["portrait", "placard", "instagram", "facebook", "story", "result"]);
+const SHARE_KIND_PREFIX = {
+  portrait: "p",
+  placard: "c",
+  instagram: "i",
+  facebook: "f",
+  story: "s",
+  result: "r",
+};
 const MIME_TO_EXTENSION = {
   "image/jpeg": "jpg",
   "image/png": "png",
@@ -48,7 +56,7 @@ module.exports = async function share(req, res) {
     }
 
     const upload = await uploadShareImage(payload);
-    const shareUrl = makeShareUrl(req, upload.publicUrl, payload);
+    const shareUrl = makeShareUrl(req, upload.path);
 
     sendJson(res, 200, {
       ok: true,
@@ -130,8 +138,9 @@ async function uploadShareImage(payload) {
 
 function makeObjectPath(payload) {
   const day = new Date().toISOString().slice(0, 10).replaceAll("-", "");
-  const id = crypto.randomUUID();
-  return `shares/${day}/${payload.kind}-${id}.${payload.extension}`;
+  const prefix = SHARE_KIND_PREFIX[payload.kind] || SHARE_KIND_PREFIX.result;
+  const id = crypto.randomBytes(12).toString("hex");
+  return `shares/${day}/${prefix}${id}.${payload.extension}`;
 }
 
 function getShareBucket() {
@@ -157,14 +166,9 @@ function buildSupabaseStorageHeaders(apiKey, mimeType) {
   return headers;
 }
 
-function makeShareUrl(req, imageUrl, payload) {
+function makeShareUrl(req, objectPath) {
   const origin = getOrigin(req);
-  const params = new URLSearchParams({
-    img: imageUrl,
-    title: payload.title,
-    desc: payload.description,
-  });
-  return `${origin}/share?${params.toString()}`;
+  return `${origin}/share/${encodeObjectPath(objectPath)}`;
 }
 
 function sendSharePage(req, res) {
@@ -179,23 +183,68 @@ function sendSharePage(req, res) {
 function getSharePageData(req) {
   const origin = getOrigin(req);
   const url = new URL(req.url || "/share", origin);
-  const imageUrl = normalizeShareImageUrl(url.searchParams.get("img"));
-  const title = cleanString(url.searchParams.get("title"), 80) || "내 이상형 결과";
-  const description =
-    cleanString(url.searchParams.get("desc"), 180) ||
-    "내 이상형 테스트 결과를 확인하고 직접 테스트해보세요.";
-  const params = new URLSearchParams();
-  if (imageUrl) params.set("img", imageUrl);
-  params.set("title", title);
-  params.set("desc", description);
+  const objectPath = normalizeShareObjectPath(url.searchParams.get("path") || getPathFromShareUrl(url));
+  const meta = getShareMeta(objectPath);
+  const imageUrl = objectPath ? makePublicImageUrl(objectPath) : normalizeShareImageUrl(url.searchParams.get("img"));
+  const title = cleanString(url.searchParams.get("title"), 80) || meta.title;
+  const description = cleanString(url.searchParams.get("desc"), 180) || meta.description;
+  const canonicalUrl = objectPath ? `${origin}/share/${encodeObjectPath(objectPath)}` : makeLegacyCanonicalUrl(origin, imageUrl, title, description);
 
   return {
     origin,
     title,
     description,
     imageUrl,
-    canonicalUrl: `${origin}/share?${params.toString()}`,
+    canonicalUrl,
   };
+}
+
+function getPathFromShareUrl(url) {
+  if (!url.pathname.startsWith("/share/")) return "";
+  return url.pathname.replace(/^\/share\/+/, "");
+}
+
+function normalizeShareObjectPath(value) {
+  if (!value) return "";
+
+  try {
+    const decoded = decodeURIComponent(String(value)).replace(/^\/+/, "");
+    if (!/^shares\/\d{8}\/[a-z0-9_-]+\.(?:jpg|png|webp)$/i.test(decoded)) return "";
+    return decoded;
+  } catch (error) {
+    return "";
+  }
+}
+
+function getShareMeta(objectPath) {
+  const filename = objectPath.split("/").pop() || "";
+  if (filename.startsWith("c") || filename.startsWith("placard")) {
+    return {
+      title: "내 이상형의 플랜카드",
+      description: "나의 이상형 사진과 결과 정보를 확인하고 직접 테스트해보세요.",
+    };
+  }
+
+  return {
+    title: "나의 이상형",
+    description: "내 이상형 사진을 확인하고 직접 테스트해보세요.",
+  };
+}
+
+function makePublicImageUrl(objectPath) {
+  const supabaseUrl = cleanString(process.env.SUPABASE_URL, 500);
+  if (!supabaseUrl) return "";
+
+  const baseUrl = supabaseUrl.replace(/\/+$/, "");
+  return `${baseUrl}/storage/v1/object/public/${encodePathSegment(getShareBucket())}/${encodeObjectPath(objectPath)}`;
+}
+
+function makeLegacyCanonicalUrl(origin, imageUrl, title, description) {
+  const params = new URLSearchParams();
+  if (imageUrl) params.set("img", imageUrl);
+  params.set("title", title);
+  params.set("desc", description);
+  return `${origin}/share?${params.toString()}`;
 }
 
 function normalizeShareImageUrl(value) {
