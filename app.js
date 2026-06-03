@@ -2239,7 +2239,7 @@ function makeSummary(profile) {
   const lowestCopy = traitResultCopy[lowest.key];
 
   return [
-    `각 성향 100% 기준으로는 ${formatTraitShare(first)}, ${formatTraitShare(second)}, ${formatTraitShare(third)}가 가장 높게 나왔어요. 이 비율은 모든 성향을 합쳐 100%로 나눈 값이 아니라, 해당 성향이 나올 수 있었던 최대 점수 중 실제로 얼마나 채웠는지를 뜻해요. 그래서 여러 성향이 동시에 높게 나올 수 있고, 성향 퍼센트를 서로 더해 100%가 되지 않아도 정상이에요.`,
+    `각 성향 100% 기준으로는 ${formatTraitShare(first)}, ${formatTraitShare(second)}, ${formatTraitShare(third)}가 가장 높게 나왔어요. 이 비율은 해당 성향이 나올 수 있었던 최대 점수 중 실제로 얼마나 채웠는지를 뜻해요. 그래서 여러 성향이 동시에 높게 나올 수 있어요.`,
     `${firstCopy.core} ${secondCopy.detail} 여기에 ${traitMeta[third.key].label} 성향도 함께 올라와서, 단순히 한 가지 매력만 강한 사람보다 ${traitMeta[first.key].phrase}${particle(traitMeta[first.key].phrase, "과", "와")} ${traitMeta[second.key].phrase}${particle(traitMeta[second.key].phrase, "이", "가")} 동시에 느껴지는 사람에게 더 오래 끌릴 가능성이 커요.`,
     `외모 문항만 보면 ${formatTraitShareList(appearanceTop)} 쪽으로 기울었고, 관계·대화 문항에서는 ${formatTraitShareList(relationshipTop)}이 두드러졌어요. 사진 타입은 외모 취향 ${appearanceWeight}%와 관계 성향 ${relationshipWeight}%를 섞어 고르도록 설계했기 때문에, 얼굴상이나 스타일 취향이 결과 사진에 충분히 반영되면서도 실제로 오래 만났을 때 중요한 태도까지 같이 들어가요. 이번 사진 선택 축은 ${formatTraitShareList(portraitTop)}에 가까워요.`,
     `${describeTraitBalance(topThree)} 상대적으로 ${traitMeta[lowest.key].label}은 ${lowest.percent}%로 낮게 잡혔는데, 이는 그 매력이 싫다는 뜻보다는 지금 답변 패턴에서 우선순위가 낮았다는 뜻이에요. ${lowestCopy.low} 결과적으로 당신의 이상형은 첫눈에 보이는 분위기와 관계 안에서 쌓이는 신뢰가 함께 맞아야 허무하지 않게 오래 설레는 타입이에요.`,

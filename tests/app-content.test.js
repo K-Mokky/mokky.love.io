@@ -288,7 +288,8 @@ test("result copy and trait meters use per-trait 100-point percentages", () => {
   assert.equal(result.summary.length > 650, true);
   assert.match(result.summary, /외모 취향 50%/);
   assert.match(result.summary, /각 성향 100% 기준/);
-  assert.match(result.summary, /서로 더해 100%가 되지 않아도 정상/);
+  assert.doesNotMatch(result.summary, /서로 더해 100%가 되지 않아도 정상/);
+  assert.doesNotMatch(result.summary, /모든 성향을 합쳐 100%/);
 });
 
 test("deployable WebP portraits cover every trait, gender, and age combination", () => {
