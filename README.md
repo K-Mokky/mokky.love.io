@@ -104,6 +104,55 @@ create table public.ideal_type_feedback (
 
 전체 SQL은 `supabase/feedback.sql`에 들어 있습니다. `publishable` 키는 공개 가능한 키지만, 사용자 응답 조회 권한까지 열리지 않도록 `select/update/delete` 정책은 만들지 않았습니다.
 
+### 저장된 설문 보기
+
+Supabase Dashboard에서 직접 볼 수 있습니다.
+
+1. Supabase 프로젝트 `vvqpajzjkcqxpvsptqvr` 열기
+2. 왼쪽 메뉴 `Table Editor` 선택
+3. `public` 스키마의 `ideal_type_feedback` 테이블 선택
+4. 최신 응답은 `created_at` 기준으로 확인
+
+SQL Editor에서는 아래처럼 볼 수 있습니다.
+
+```sql
+select
+  created_at,
+  satisfaction,
+  reason,
+  mode,
+  target_gender,
+  target_age_range,
+  result_title,
+  top_traits
+from public.ideal_type_feedback
+order by created_at desc
+limit 100;
+```
+
+만족/아쉬움 집계는 아래 쿼리로 확인할 수 있습니다.
+
+```sql
+select satisfaction, count(*) as responses
+from public.ideal_type_feedback
+group by satisfaction
+order by responses desc;
+```
+
+### 이메일 알림 설정
+
+설문이 접수될 때마다 Resend API로 알림 메일을 보낼 수 있습니다. 새 의존성 없이 Vercel Serverless Function에서 `fetch`로 Resend `POST /emails` API를 호출합니다.
+
+Vercel 환경변수:
+
+```text
+RESEND_API_KEY=re_your-server-only-resend-key
+FEEDBACK_EMAIL_TO=mokky@mokky.store
+FEEDBACK_EMAIL_FROM=Love Feedback <feedback@mokky.store>
+```
+
+`RESEND_API_KEY`는 서버 전용 secret입니다. `FEEDBACK_EMAIL_FROM`은 Resend에서 인증된 도메인의 발신 주소를 쓰는 것을 권장합니다. 메일 발송이 실패해도 설문 저장은 계속 성공 처리됩니다.
+
 ## 검증
 
 ```bash
