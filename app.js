@@ -2080,6 +2080,18 @@ function computeNonAppearanceScores() {
   return computeScoresFor((question) => question.category !== appearanceCategory);
 }
 
+function computeScoreMaximums() {
+  return computeScoreMaximumsFor(() => true);
+}
+
+function computeAppearanceScoreMaximums() {
+  return computeScoreMaximumsFor((question) => question.category === appearanceCategory);
+}
+
+function computeNonAppearanceScoreMaximums() {
+  return computeScoreMaximumsFor((question) => question.category !== appearanceCategory);
+}
+
 function computeScoresFor(includeQuestion) {
   const scores = Object.fromEntries(Object.keys(traitMeta).map((trait) => [trait, 0]));
   activeQuestions().forEach((question, index) => {
@@ -2092,6 +2104,17 @@ function computeScoresFor(includeQuestion) {
     });
   });
   return scores;
+}
+
+function computeScoreMaximumsFor(includeQuestion) {
+  const maximums = Object.fromEntries(Object.keys(traitMeta).map((trait) => [trait, 0]));
+  activeQuestions().forEach((question) => {
+    if (!includeQuestion(question)) return;
+    Object.keys(traitMeta).forEach((trait) => {
+      maximums[trait] += Math.max(...question.options.map((option) => option.scores[trait] || 0));
+    });
+  });
+  return maximums;
 }
 
 function computePortraitScores() {
@@ -2126,17 +2149,23 @@ function getTopTraits(scores, limit = 3) {
     .slice(0, limit);
 }
 
-function getScoreTotal(scores) {
-  return Object.values(scores).reduce((sum, value) => sum + value, 0);
-}
-
-function getNormalizedTraits(scores) {
-  const total = getScoreTotal(scores);
+function getNormalizedTraits(scores, maximums = computeScoreMaximums()) {
   return Object.entries(scores)
     .map(([key, value]) => ({
       key,
       value,
-      percent: total > 0 ? Math.round((value / total) * 100) : 0,
+      max: maximums[key] || 0,
+      percent: maximums[key] > 0 ? Math.round((value / maximums[key]) * 100) : 0,
+    }))
+    .sort((a, b) => b.percent - a.percent || b.value - a.value);
+}
+
+function getPortraitTraitShares(scores) {
+  return Object.entries(scores)
+    .map(([key, value]) => ({
+      key,
+      value,
+      percent: Math.round(value * 100),
     }))
     .sort((a, b) => b.value - a.value);
 }
@@ -2145,11 +2174,25 @@ function buildProfile() {
   const scores = computeScores();
   const appearanceScores = computeAppearanceScores();
   const nonAppearanceScores = computeNonAppearanceScores();
+  const scoreMaximums = computeScoreMaximums();
+  const appearanceScoreMaximums = computeAppearanceScoreMaximums();
+  const nonAppearanceScoreMaximums = computeNonAppearanceScoreMaximums();
   const portraitScores = computePortraitScores();
-  const top = getTopTraits(scores, 4);
+  const top = getNormalizedTraits(scores, scoreMaximums).slice(0, 4);
   const portraitTop = getTopTraits(portraitScores, 4);
   const title = makeTitle(top);
-  const profile = { scores, appearanceScores, nonAppearanceScores, portraitScores, top, portraitTop, title };
+  const profile = {
+    scores,
+    appearanceScores,
+    nonAppearanceScores,
+    scoreMaximums,
+    appearanceScoreMaximums,
+    nonAppearanceScoreMaximums,
+    portraitScores,
+    top,
+    portraitTop,
+    title,
+  };
   const summary = makeSummary(profile);
   const prompt = makePrompt(portraitTop);
   return { ...profile, summary, prompt };
@@ -2175,18 +2218,18 @@ function makeTitle(top) {
 }
 
 function makeSummary(profile) {
-  const allTraits = getNormalizedTraits(profile.scores);
+  const allTraits = getNormalizedTraits(profile.scores, profile.scoreMaximums);
   const topThree = allTraits.slice(0, 3);
   const [first, second, third] = topThree;
   const positiveTraits = allTraits.filter((trait) => trait.value > 0);
   const lowest = positiveTraits[positiveTraits.length - 1] || allTraits[allTraits.length - 1];
-  const appearanceTop = getNormalizedTraits(profile.appearanceScores)
+  const appearanceTop = getNormalizedTraits(profile.appearanceScores, profile.appearanceScoreMaximums)
     .filter((trait) => trait.value > 0)
     .slice(0, 2);
-  const relationshipTop = getNormalizedTraits(profile.nonAppearanceScores)
+  const relationshipTop = getNormalizedTraits(profile.nonAppearanceScores, profile.nonAppearanceScoreMaximums)
     .filter((trait) => trait.value > 0)
     .slice(0, 2);
-  const portraitTop = getNormalizedTraits(profile.portraitScores).slice(0, 2);
+  const portraitTop = getPortraitTraitShares(profile.portraitScores).slice(0, 2);
   const appearanceWeight = Math.round(portraitAppearanceWeight * 100);
   const relationshipWeight = 100 - appearanceWeight;
 
@@ -2196,7 +2239,7 @@ function makeSummary(profile) {
   const lowestCopy = traitResultCopy[lowest.key];
 
   return [
-    `전체 답변 점수 기준으로는 ${formatTraitShare(first)}, ${formatTraitShare(second)}, ${formatTraitShare(third)}가 가장 높게 나왔어요. 이 비율은 최고점을 100으로 둔 상대 점수가 아니라, 전체 선택 점수 중 각 성향이 차지한 몫이에요. 그래서 특정 성향이 1위여도 무조건 100%로 보이지 않아요.`,
+    `각 성향 100% 기준으로는 ${formatTraitShare(first)}, ${formatTraitShare(second)}, ${formatTraitShare(third)}가 가장 높게 나왔어요. 이 비율은 모든 성향을 합쳐 100%로 나눈 값이 아니라, 해당 성향이 나올 수 있었던 최대 점수 중 실제로 얼마나 채웠는지를 뜻해요. 그래서 여러 성향이 동시에 높게 나올 수 있고, 성향 퍼센트를 서로 더해 100%가 되지 않아도 정상이에요.`,
     `${firstCopy.core} ${secondCopy.detail} 여기에 ${traitMeta[third.key].label} 성향도 함께 올라와서, 단순히 한 가지 매력만 강한 사람보다 ${traitMeta[first.key].phrase}${particle(traitMeta[first.key].phrase, "과", "와")} ${traitMeta[second.key].phrase}${particle(traitMeta[second.key].phrase, "이", "가")} 동시에 느껴지는 사람에게 더 오래 끌릴 가능성이 커요.`,
     `외모 문항만 보면 ${formatTraitShareList(appearanceTop)} 쪽으로 기울었고, 관계·대화 문항에서는 ${formatTraitShareList(relationshipTop)}이 두드러졌어요. 사진 타입은 외모 취향 ${appearanceWeight}%와 관계 성향 ${relationshipWeight}%를 섞어 고르도록 설계했기 때문에, 얼굴상이나 스타일 취향이 결과 사진에 충분히 반영되면서도 실제로 오래 만났을 때 중요한 태도까지 같이 들어가요. 이번 사진 선택 축은 ${formatTraitShareList(portraitTop)}에 가까워요.`,
     `${describeTraitBalance(topThree)} 상대적으로 ${traitMeta[lowest.key].label}은 ${lowest.percent}%로 낮게 잡혔는데, 이는 그 매력이 싫다는 뜻보다는 지금 답변 패턴에서 우선순위가 낮았다는 뜻이에요. ${lowestCopy.low} 결과적으로 당신의 이상형은 첫눈에 보이는 분위기와 관계 안에서 쌓이는 신뢰가 함께 맞아야 허무하지 않게 오래 설레는 타입이에요.`,
@@ -2252,15 +2295,15 @@ function showResult() {
   const profile = buildProfile();
   els.resultTitle.textContent = profile.title;
   els.resultSummary.textContent = profile.summary;
-  renderTraitList(profile.scores);
+  renderTraitList(profile.scores, profile.scoreMaximums);
   setPortraitActionsDisabled(true);
   setImageStatus("generating", "결과 타입에 맞는 사진 5장 중 하나를 고르는 중이에요");
   drawPortrait(profile, resultToken);
   showScreen("result");
 }
 
-function renderTraitList(scores) {
-  const traits = getNormalizedTraits(scores).slice(0, 5);
+function renderTraitList(scores, maximums = computeScoreMaximums()) {
+  const traits = getNormalizedTraits(scores, maximums);
   els.traitList.innerHTML = "";
   traits.forEach((trait) => {
     const item = document.createElement("div");
@@ -3212,7 +3255,7 @@ function createPlacardCanvas(profile) {
   ctx.fillText("TOP TRAITS", 94, y);
   y += 38;
 
-  const traits = getNormalizedTraits(profile.scores).slice(0, 5);
+  const traits = getNormalizedTraits(profile.scores, profile.scoreMaximums).slice(0, 5);
   traits.forEach((trait, index) => {
     const x = 94 + (index % 2) * 506;
     const rowY = y + Math.floor(index / 2) * 64;

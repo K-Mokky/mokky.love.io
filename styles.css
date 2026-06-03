@@ -666,6 +666,14 @@ strong,
   white-space: pre-line;
 }
 
+.trait-list-title {
+  margin: 0 0 10px;
+  color: rgba(217, 43, 120, 0.86);
+  font-size: 0.9rem;
+  font-weight: 900;
+  letter-spacing: -0.01em;
+}
+
 .trait-list {
   display: grid;
   gap: 8px;

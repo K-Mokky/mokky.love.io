@@ -241,7 +241,7 @@ test("portrait scoring blends appearance and relationship answers at 50% each", 
   assert.equal(result.steadiness, 0.2);
 });
 
-test("result copy and trait meters use total-score percentages", () => {
+test("result copy and trait meters use per-trait 100-point percentages", () => {
   const context = loadApp();
   const result = vm.runInContext(
     `(() => {
@@ -256,23 +256,39 @@ test("result copy and trait meters use total-score percentages", () => {
         independence: 0,
         adventure: 0,
         sincerity: 0,
+      }, {
+        warmth: 20,
+        energy: 5,
+        humor: 10,
+        intellect: 10,
+        steadiness: 10,
+        aesthetics: 10,
+        romance: 10,
+        independence: 10,
+        adventure: 10,
+        sincerity: 10,
       });
       state.answers = activeQuestions().map((question) => 0);
       const profile = buildProfile();
       return {
         warmthPercent: normalized.find((trait) => trait.key === "warmth").percent,
         energyPercent: normalized.find((trait) => trait.key === "energy").percent,
+        percentSum: normalized.reduce((sum, trait) => sum + trait.percent, 0),
+        renderedTraitCount: getNormalizedTraits(profile.scores, profile.scoreMaximums).length,
         summary: profile.summary,
       };
     })()`,
     context,
   );
 
-  assert.equal(result.warmthPercent, 67);
-  assert.equal(result.energyPercent, 33);
+  assert.equal(result.warmthPercent, 50);
+  assert.equal(result.energyPercent, 100);
+  assert.equal(result.percentSum > 100, true);
+  assert.equal(result.renderedTraitCount, 10);
   assert.equal(result.summary.length > 650, true);
   assert.match(result.summary, /외모 취향 50%/);
-  assert.match(result.summary, /무조건 100%/);
+  assert.match(result.summary, /각 성향 100% 기준/);
+  assert.match(result.summary, /서로 더해 100%가 되지 않아도 정상/);
 });
 
 test("deployable WebP portraits cover every trait, gender, and age combination", () => {
@@ -374,6 +390,7 @@ test("question count is compact and non-wrapping", () => {
 
   assert.equal(label, "2/20");
   assert.match(markup, /data-mode="80"/);
+  assert.match(markup, /성향별 충족도 · 각 성향 100점 기준/);
   assert.doesNotMatch(markup, /data-mode="100"/);
   assert.doesNotMatch(label, /\s/);
   assert.match(styles, /#questionCount\s*{[^}]*white-space:\s*nowrap;/s);
