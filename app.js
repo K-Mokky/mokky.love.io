@@ -96,1013 +96,1711 @@ const preferenceMeta = {
   },
 };
 
+const traitResultCopy = {
+  warmth: {
+    core: "상대가 먼저 마음을 데워주고, 작은 배려를 행동으로 보여줄 때 빠르게 안정감을 느끼는 편이에요.",
+    detail: "무심한 설렘보다 눈빛·안부·생활 속 챙김처럼 체감되는 온기를 중요하게 봐요.",
+    low: "다정함을 무조건 많이 요구하기보다 다른 강점과 균형을 맞춰 보는 흐름이에요.",
+  },
+  energy: {
+    core: "밝은 리듬과 생동감이 있는 사람에게 끌려요.",
+    detail: "대화나 데이트가 정체되지 않고, 같이 있으면 하루가 조금 더 가벼워지는 타입을 선호해요.",
+    low: "항상 텐션 높은 사람보다는 필요한 순간에만 에너지가 살아나는 쪽이 편할 수 있어요.",
+  },
+  humor: {
+    core: "어색한 순간을 웃음으로 바꾸는 재치에 마음이 움직여요.",
+    detail: "가벼운 농담만이 아니라 서로의 긴장을 낮추는 센스와 둘만의 코드가 중요해요.",
+    low: "웃김 하나만으로 관계를 끌고 가는 타입보다는 맥락 있는 위트를 선호하는 편이에요.",
+  },
+  intellect: {
+    core: "생각의 깊이와 대화의 밀도가 있는 사람에게 호감이 커져요.",
+    detail: "질문을 잘하고, 문제를 정리하며, 취향과 가치관을 말로 설명할 수 있는 사람에게 끌려요.",
+    low: "논리만 앞세우는 관계보다 감정의 온도와 함께 있을 때 더 잘 맞아요.",
+  },
+  steadiness: {
+    core: "예측 가능한 태도와 책임감에서 큰 매력을 느껴요.",
+    detail: "말과 행동이 꾸준히 맞고, 갈등이나 일정 변화에서도 중심을 잃지 않는 사람이 오래 남아요.",
+    low: "안정감이 낮게 나왔다면 너무 계획적인 사람보다 여유와 즉흥성이 섞인 상대가 더 편할 수 있어요.",
+  },
+  aesthetics: {
+    core: "취향이 보이는 외모와 분위기, 세심한 디테일에 강하게 반응해요.",
+    detail: "얼굴상·스타일·사진 분위기처럼 첫인상에서 느껴지는 감각적 완성도가 결과에 크게 반영됐어요.",
+    low: "겉으로 보이는 완성도보다 실제 관계에서 느껴지는 태도를 더 우선할 수 있어요.",
+  },
+  romance: {
+    core: "일상을 장면처럼 기억하게 만드는 낭만에 마음이 열려요.",
+    detail: "표현을 아끼지 않고, 사소한 순간에도 설렘을 남기는 사람에게 오래 끌려요.",
+    low: "큰 이벤트보다 편안함과 현실감을 더 중시하는 쪽으로 읽혀요.",
+  },
+  independence: {
+    core: "자기 세계가 분명하고 쉽게 휘둘리지 않는 사람에게 끌려요.",
+    detail: "도도함, 선명한 스타일, 독립적인 생활 리듬처럼 ‘자기다움’이 느껴질수록 호감이 커져요.",
+    low: "강한 개성보다 함께 맞춰가는 안정적인 호흡을 더 편하게 느낄 수 있어요.",
+  },
+  adventure: {
+    core: "새로운 경험을 두려워하지 않는 가벼운 추진력에 끌려요.",
+    detail: "계획 밖의 상황도 추억으로 바꾸고, 관계에 새로운 공기를 넣어주는 사람을 좋게 봐요.",
+    low: "큰 변화보다 익숙하고 예측 가능한 데이트 흐름이 더 안정적으로 느껴질 수 있어요.",
+  },
+  sincerity: {
+    core: "말의 화려함보다 진심이 보이는 태도에 마음을 줘요.",
+    detail: "사과, 경청, 기억해주는 행동처럼 관계의 신뢰를 쌓는 장면을 중요하게 봐요.",
+    low: "진지함만 강한 관계보다 가벼운 즐거움이나 감각적 끌림도 함께 필요해 보여요.",
+  },
+};
+
 function pick(label, scores) {
   return { label, scores };
 }
 
 const appearanceCategory = "외모 취향";
-const portraitAppearanceWeight = 0.7;
+const portraitAppearanceWeight = 0.5;
+const targetAppearanceQuestionShare = 0.5;
+const quizModes = [20, 50, 80];
 
 const questionBlueprints = [
   {
-    category: "외모 취향",
-    text: "멀리서 봤을 때 먼저 눈길이 가는 인상은 어떤 쪽인가요?",
-    options: [
-      pick("눈매가 또렷해서 살짝 여우처럼 영리해 보인다", { independence: 3, aesthetics: 2 }),
-      pick("웃는 얼굴이 강아지처럼 편하고 밝다", { warmth: 3, energy: 2 }),
-      pick("표정이 재빠르게 바뀌어 원숭이처럼 장난기가 돈다", { humor: 3, adventure: 2 }),
-    ],
-  },
-  {
-    category: "외모 취향",
-    text: "사진 한 장만 봐도 호감이 생기는 분위기는 무엇인가요?",
-    options: [
-      pick("고양이처럼 차분하고 도도한 여백이 있다", { aesthetics: 3, independence: 2 }),
-      pick("토끼처럼 맑고 부드러운 첫인상이 남는다", { romance: 3, warmth: 2 }),
-      pick("곰처럼 든든하고 포근한 안정감이 느껴진다", { steadiness: 3, sincerity: 2 }),
-    ],
-  },
-  {
-    category: "외모 취향",
-    text: "상대의 눈매에서 가장 끌리는 결은 어떤 느낌인가요?",
-    options: [
-      pick("가늘고 선명해서 생각을 숨긴 듯한 눈빛", { intellect: 3, independence: 2 }),
-      pick("둥글고 선해서 금방 마음이 풀리는 눈빛", { warmth: 4, sincerity: 1 }),
-      pick("반짝이며 장난을 먼저 걸어오는 눈빛", { humor: 3, energy: 2 }),
-    ],
-  },
-  {
-    category: "외모 취향",
-    text: "웃는 얼굴을 봤을 때 오래 기억나는 포인트는 무엇인가요?",
-    options: [
-      pick("입꼬리가 살짝 올라가 능청스럽게 설렌다", { humor: 2, romance: 3 }),
-      pick("활짝 웃을 때 주변까지 밝아지는 느낌이 있다", { energy: 3, warmth: 2 }),
-      pick("작게 웃어도 진심이 보여 오래 믿음이 간다", { sincerity: 3, steadiness: 2 }),
-    ],
-  },
-  {
-    category: "외모 취향",
-    text: "얼굴선이나 전체 윤곽에서 더 마음이 가는 쪽은?",
-    options: [
-      pick("선이 날렵해 세련되고 민첩한 느낌", { aesthetics: 3, adventure: 2 }),
-      pick("선이 부드러워 편안하고 다정한 느낌", { warmth: 3, romance: 2 }),
-      pick("균형이 단정해 차분하고 믿음직한 느낌", { steadiness: 3, intellect: 2 }),
-    ],
-  },
-  {
-    category: "외모 취향",
-    text: "처음 마주 앉았을 때 더 끌리는 표정의 온도는?",
-    options: [
-      pick("살짝 새침해서 더 알고 싶어지는 표정", { independence: 3, aesthetics: 2 }),
-      pick("처음부터 경계가 풀리는 순한 표정", { warmth: 4, sincerity: 1 }),
-      pick("뭔가 사고 칠 것 같은 유쾌한 표정", { humor: 4, energy: 1 }),
-    ],
-  },
-  {
-    category: "외모 취향",
-    text: "헤어스타일에서 자연스럽게 호감이 생기는 지점은?",
-    options: [
-      pick("깔끔하게 정돈되어 자기관리가 느껴진다", { steadiness: 3, aesthetics: 2 }),
-      pick("부드럽고 자연스러워 편하게 다가가고 싶다", { warmth: 3, romance: 2 }),
-      pick("조금 개성 있어 자기 색이 바로 보인다", { independence: 4, adventure: 1 }),
-    ],
-  },
-  {
-    category: "외모 취향",
-    text: "상대의 분위기를 동물상으로 말한다면 어느 쪽이 더 궁금한가요?",
-    options: [
-      pick("여우상처럼 눈치 빠르고 매력의 여백이 있는 타입", { intellect: 2, aesthetics: 3 }),
-      pick("강아지상처럼 표현이 솔직하고 가까운 타입", { warmth: 3, sincerity: 2 }),
-      pick("원숭이상처럼 재치 있고 움직임이 생동감 있는 타입", { humor: 3, energy: 2 }),
-    ],
-  },
-  {
-    category: "외모 취향",
-    text: "옆모습이나 실루엣에서 마음이 가는 순간은 언제인가요?",
-    options: [
-      pick("자세가 곧고 단정해 신뢰감이 생긴다", { steadiness: 4, sincerity: 1 }),
-      pick("몸짓이 가볍고 활발해 함께 움직이고 싶다", { energy: 3, adventure: 2 }),
-      pick("작은 제스처까지 분위기 있게 남는다", { aesthetics: 3, romance: 2 }),
-    ],
-  },
-  {
-    category: "외모 취향",
-    text: "결국 외모에서 가장 오래 남는 건 어떤 요소인가요?",
-    options: [
-      pick("한눈에 설명되지 않는 묘한 개성", { independence: 3, aesthetics: 2 }),
-      pick("볼수록 마음이 놓이는 선한 인상", { warmth: 3, steadiness: 2 }),
-      pick("표정마다 이야기가 달라지는 생기", { energy: 2, humor: 3 }),
-    ],
-  },
-  {
-    category: "첫만남",
-    text: "약속 장소에 먼저 도착한 상대가 어떻게 기다리고 있으면 끌리나요?",
-    options: [
-      pick("메시지로 위치를 알려주며 편하게 오라고 말한다", { warmth: 4, steadiness: 1 }),
-      pick("근처 분위기 좋은 자리를 즉석에서 찾아둔다", { aesthetics: 3, energy: 2 }),
-      pick("기다리는 동안 떠오른 이야기를 자연스럽게 꺼낸다", { intellect: 3, sincerity: 2 }),
-    ],
-  },
-  {
-    category: "첫만남",
-    text: "처음 악수하거나 인사할 때 가장 매력적인 태도는 무엇인가요?",
-    options: [
-      pick("눈을 맞추고 부드럽게 웃으며 이름을 불러준다", { warmth: 3, romance: 2 }),
-      pick("담백하지만 자신감 있게 분위기를 열어준다", { independence: 3, energy: 2 }),
-      pick("과하지 않은 예의와 차분한 말투를 지킨다", { steadiness: 3, sincerity: 2 }),
-    ],
-  },
-  {
-    category: "첫만남",
-    text: "낯선 모임에서 상대에게 시선이 가는 순간은 언제인가요?",
-    options: [
-      pick("혼자 있는 사람을 자연스럽게 챙겨준다", { warmth: 4, sincerity: 1 }),
-      pick("재치 있는 말로 모두의 긴장을 가볍게 만든다", { humor: 4, energy: 1 }),
-      pick("자기 의견을 조용하지만 선명하게 말한다", { intellect: 3, independence: 2 }),
-    ],
-  },
-  {
-    category: "첫만남",
-    text: "상대의 옷차림에서 가장 먼저 호감이 생기는 지점은 무엇인가요?",
-    options: [
-      pick("깔끔하고 편안해 보여 오래 함께 걷고 싶다", { steadiness: 3, warmth: 2 }),
-      pick("작은 액세서리나 색감에서 취향이 느껴진다", { aesthetics: 4, independence: 1 }),
-      pick("예상 밖의 조합을 자기답게 소화한다", { independence: 3, adventure: 2 }),
-    ],
-  },
-  {
-    category: "첫만남",
-    text: "첫 대화가 5분 만에 편해지는 이유로 가장 좋은 것은?",
-    options: [
-      pick("내 말을 끊지 않고 표정으로 따라와 준다", { warmth: 4, sincerity: 1 }),
-      pick("질문 하나로 대화의 깊이를 만들어낸다", { intellect: 4, romance: 1 }),
-      pick("작은 실수를 웃음으로 바꿔 어색함을 없앤다", { humor: 4, energy: 1 }),
-    ],
-  },
-  {
-    category: "첫만남",
-    text: "처음 만난 사람이 약간 늦었을 때 어떤 반응이 더 끌리나요?",
-    options: [
-      pick("이유를 솔직히 말하고 바로 사과한다", { sincerity: 4, steadiness: 1 }),
-      pick("기다린 시간을 배려해 다음 일정을 세심히 맞춘다", { warmth: 3, steadiness: 2 }),
-      pick("분위기가 무거워지지 않게 가볍게 웃겨준다", { humor: 3, energy: 2 }),
-    ],
-  },
-  {
-    category: "첫만남",
-    text: "처음 보는 장소에서 상대가 길을 찾는 방식 중 매력적인 것은?",
-    options: [
-      pick("빠르게 방향을 정하고 먼저 움직인다", { energy: 3, adventure: 2 }),
-      pick("지도를 차분히 확인하며 불안하지 않게 설명한다", { steadiness: 4, intellect: 1 }),
-      pick("길을 헤매는 상황도 작은 추억처럼 즐긴다", { adventure: 3, humor: 2 }),
-    ],
-  },
-  {
-    category: "첫만남",
-    text: "첫 만남 후 집에 가는 길에 가장 오래 남는 장면은?",
-    options: [
-      pick("헤어질 때 오늘 좋았던 점을 구체적으로 말해준다", { romance: 3, sincerity: 2 }),
-      pick("무사히 도착했는지 부담 없이 확인해준다", { warmth: 3, steadiness: 2 }),
-      pick("짧은 만남에서도 자기 세계가 선명하게 보였다", { independence: 4, aesthetics: 1 }),
-    ],
-  },
-  {
-    category: "첫만남",
-    text: "상대의 목소리에서 가장 끌리는 느낌은 무엇인가요?",
-    options: [
-      pick("낮고 안정적이라 마음이 가라앉는다", { steadiness: 4, sincerity: 1 }),
-      pick("밝고 생동감 있어 주변 공기가 살아난다", { energy: 4, warmth: 1 }),
-      pick("조용하지만 문장마다 생각의 결이 느껴진다", { intellect: 4, aesthetics: 1 }),
-    ],
-  },
-  {
-    category: "첫만남",
-    text: "처음부터 다시 만나고 싶다는 생각이 드는 결정적 이유는?",
-    options: [
-      pick("짧은 시간에도 나를 존중받는 사람처럼 느끼게 한다", { sincerity: 3, warmth: 2 }),
-      pick("다음에 같이 해볼 일이 자연스럽게 떠오른다", { adventure: 3, energy: 2 }),
-      pick("평범한 대화도 장면처럼 기억되게 만든다", { romance: 3, aesthetics: 2 }),
-    ],
-  },
-
-  {
-    category: "대화",
-    text: "밤늦게 긴 통화를 한다면 어떤 흐름이 가장 좋나요?",
-    options: [
-      pick("오늘 힘들었던 마음을 천천히 풀어놓을 수 있다", { warmth: 4, sincerity: 1 }),
-      pick("한 주제에서 다른 주제로 지적인 호기심이 이어진다", { intellect: 4, adventure: 1 }),
-      pick("사소한 농담이 계속 쌓여 둘만의 코드가 된다", { humor: 4, romance: 1 }),
-    ],
-  },
-  {
-    category: "대화",
-    text: "상대가 내 고민을 들을 때 어떤 방식이면 믿음이 가나요?",
-    options: [
-      pick("먼저 감정을 알아주고 해결책은 나중에 제안한다", { warmth: 4, sincerity: 1 }),
-      pick("문제를 구조적으로 정리해 선택지를 보여준다", { intellect: 4, steadiness: 1 }),
-      pick("내가 스스로 결정하도록 옆에서 기다려준다", { independence: 3, steadiness: 2 }),
-    ],
-  },
-  {
-    category: "대화",
-    text: "취향이 정반대라는 걸 알았을 때 더 끌리는 반응은?",
-    options: [
-      pick("왜 좋아하는지 궁금해하며 진심으로 들어본다", { sincerity: 3, intellect: 2 }),
-      pick("차이를 놀림거리로 만들지 않고 귀엽게 받아준다", { warmth: 3, humor: 2 }),
-      pick("서로의 취향을 섞은 새로운 시도를 제안한다", { adventure: 3, aesthetics: 2 }),
-    ],
-  },
-  {
-    category: "대화",
-    text: "말수가 적은 상대라면 어떤 순간에 매력을 느끼나요?",
-    options: [
-      pick("필요한 순간에 정확한 한마디를 건넨다", { intellect: 3, sincerity: 2 }),
-      pick("표정과 행동으로 꾸준히 마음을 보여준다", { steadiness: 3, warmth: 2 }),
-      pick("혼자만의 시간을 존중해도 거리감이 차갑지 않다", { independence: 3, sincerity: 2 }),
-    ],
-  },
-  {
-    category: "대화",
-    text: "함께 뉴스를 보다가 의견이 갈렸을 때 좋은 태도는?",
-    options: [
-      pick("근거를 차분히 나누며 서로의 관점을 넓힌다", { intellect: 4, steadiness: 1 }),
-      pick("이견보다 관계의 온도를 먼저 지켜준다", { warmth: 3, romance: 2 }),
-      pick("자기 입장을 숨기지 않되 상대를 깎아내리지 않는다", { independence: 3, sincerity: 2 }),
-    ],
-  },
-  {
-    category: "대화",
-    text: "칭찬을 들을 때 어떤 표현이 가장 설레나요?",
-    options: [
-      pick("겉모습보다 내가 애쓴 과정을 알아봐 준다", { sincerity: 4, warmth: 1 }),
-      pick("아주 구체적인 디테일을 기억해서 말해준다", { romance: 3, aesthetics: 2 }),
-      pick("재치 있게 말해 민망함까지 웃게 만든다", { humor: 3, energy: 2 }),
-    ],
-  },
-  {
-    category: "대화",
-    text: "상대가 자기 꿈을 말할 때 어떤 모습이 멋있나요?",
-    options: [
-      pick("현실적인 계획과 책임감을 함께 보여준다", { steadiness: 3, intellect: 2 }),
-      pick("눈빛이 살아나고 에너지가 주변으로 번진다", { energy: 4, adventure: 1 }),
-      pick("남과 비교하지 않는 자기만의 기준이 있다", { independence: 4, sincerity: 1 }),
-    ],
-  },
-  {
-    category: "대화",
-    text: "침묵이 생겼을 때 더 편하게 느껴지는 사람은?",
-    options: [
-      pick("억지로 채우지 않아도 온기가 느껴진다", { warmth: 3, steadiness: 2 }),
-      pick("창밖 풍경 같은 작은 소재로 부드럽게 이어간다", { aesthetics: 3, romance: 2 }),
-      pick("갑자기 엉뚱한 질문을 던져 분위기를 바꾼다", { humor: 3, adventure: 2 }),
-    ],
-  },
-  {
-    category: "대화",
-    text: "메신저 말투에서 가장 호감이 가는 특징은?",
-    options: [
-      pick("짧아도 맥락과 배려가 빠지지 않는다", { sincerity: 3, steadiness: 2 }),
-      pick("이모티콘과 표현이 밝아 기분이 좋아진다", { energy: 3, warmth: 2 }),
-      pick("가끔 예상 못 한 문장으로 웃음을 준다", { humor: 4, independence: 1 }),
-    ],
-  },
-  {
-    category: "대화",
-    text: "서로의 과거 이야기를 나눌 때 가장 중요한 것은?",
-    options: [
-      pick("판단보다 이해하려는 태도를 보인다", { warmth: 3, sincerity: 2 }),
-      pick("무겁지 않게 받아들이되 가볍게 소비하지 않는다", { steadiness: 3, intellect: 2 }),
-      pick("상처까지도 앞으로의 방향으로 연결해 말한다", { adventure: 2, sincerity: 3 }),
-    ],
-  },
-
-  {
-    category: "데이트",
-    text: "주말 오후 데이트를 정한다면 가장 끌리는 제안은?",
-    options: [
-      pick("조용한 카페에서 오래 이야기하고 함께 산책한다", { warmth: 3, romance: 2 }),
-      pick("전시나 편집숍을 돌며 서로의 취향을 발견한다", { aesthetics: 4, intellect: 1 }),
-      pick("당일에 끌리는 동네로 가볍게 떠나본다", { adventure: 4, energy: 1 }),
-    ],
-  },
-  {
-    category: "데이트",
-    text: "식당 예약이 갑자기 취소됐을 때 좋은 상대의 모습은?",
-    options: [
-      pick("침착하게 근처 대안을 찾고 내 기분을 살핀다", { steadiness: 3, warmth: 2 }),
-      pick("오히려 새로운 맛집 탐험이라며 즐겁게 바꾼다", { adventure: 3, energy: 2 }),
-      pick("상황을 웃긴 에피소드로 만들어 긴장을 풀어준다", { humor: 4, romance: 1 }),
-    ],
-  },
-  {
-    category: "데이트",
-    text: "영화를 보고 나오는 길에 어떤 대화가 좋나요?",
-    options: [
-      pick("좋았던 장면을 감정 중심으로 나눈다", { romance: 3, warmth: 2 }),
-      pick("연출과 메시지를 깊게 해석해본다", { intellect: 4, aesthetics: 1 }),
-      pick("명대사를 장난스럽게 따라 하며 웃는다", { humor: 3, energy: 2 }),
-    ],
-  },
-  {
-    category: "데이트",
-    text: "함께 사진을 찍는다면 어떤 스타일이 더 마음에 드나요?",
-    options: [
-      pick("자연스럽게 웃는 순간을 놓치지 않는다", { warmth: 3, energy: 2 }),
-      pick("구도와 빛을 신경 써 예쁜 한 장을 만든다", { aesthetics: 4, romance: 1 }),
-      pick("남들이 안 찍는 엉뚱한 장면을 남긴다", { independence: 3, humor: 2 }),
-    ],
-  },
-  {
-    category: "데이트",
-    text: "데이트 비용을 다룰 때 어떤 태도가 편한가요?",
-    options: [
-      pick("서로 부담 없도록 먼저 균형을 맞추려 한다", { steadiness: 3, sincerity: 2 }),
-      pick("상황에 따라 기분 좋게 번갈아 챙긴다", { warmth: 3, romance: 2 }),
-      pick("돈보다 경험의 만족도를 더 중요하게 본다", { adventure: 2, aesthetics: 3 }),
-    ],
-  },
-  {
-    category: "데이트",
-    text: "비 오는 날 데이트에서 가장 기억에 남을 행동은?",
-    options: [
-      pick("우산을 자연스럽게 내 쪽으로 기울여준다", { warmth: 4, romance: 1 }),
-      pick("젖은 길도 분위기 있다며 사진 찍을 곳을 찾는다", { aesthetics: 3, adventure: 2 }),
-      pick("실내 동선을 빠르게 정리해 불편함을 줄인다", { steadiness: 4, intellect: 1 }),
-    ],
-  },
-  {
-    category: "데이트",
-    text: "긴 줄을 기다려야 하는 상황에서 어떤 사람이 좋나요?",
-    options: [
-      pick("기다림도 대화 시간처럼 편안하게 만든다", { warmth: 3, sincerity: 2 }),
-      pick("게임이나 장난으로 지루함을 없앤다", { humor: 3, energy: 2 }),
-      pick("대기 시간을 계산해 더 효율적인 선택을 제안한다", { intellect: 3, steadiness: 2 }),
-    ],
-  },
-  {
-    category: "데이트",
-    text: "상대가 데이트 코스를 준비했다면 어떤 부분이 감동인가요?",
-    options: [
-      pick("내가 좋아한다고 말한 것을 기억해 반영했다", { sincerity: 4, romance: 1 }),
-      pick("익숙한 장소도 새롭게 느끼게 구성했다", { aesthetics: 3, adventure: 2 }),
-      pick("무리 없는 시간표로 편안함을 챙겼다", { steadiness: 4, warmth: 1 }),
-    ],
-  },
-  {
-    category: "데이트",
-    text: "함께 걷다가 예쁜 골목을 발견했을 때 좋은 반응은?",
-    options: [
-      pick("잠깐 돌아가도 괜찮다며 내 호기심을 따라와 준다", { warmth: 3, adventure: 2 }),
-      pick("그 골목의 분위기를 자기만의 말로 표현한다", { aesthetics: 3, intellect: 2 }),
-      pick("다음 데이트에 이 동네를 더 탐험하자고 한다", { adventure: 4, romance: 1 }),
-    ],
-  },
-  {
-    category: "데이트",
-    text: "하루 데이트가 끝난 뒤 가장 듣고 싶은 말은?",
-    options: [
-      pick("오늘 너랑 있어서 마음이 편했어", { warmth: 4, steadiness: 1 }),
-      pick("오늘 장면 중에 이 순간이 계속 생각나", { romance: 4, aesthetics: 1 }),
-      pick("다음엔 우리가 안 해본 걸 해보자", { adventure: 3, energy: 2 }),
-    ],
-  },
-
-  {
-    category: "일상",
-    text: "같이 장을 보러 갔을 때 어떤 모습이 매력적인가요?",
-    options: [
-      pick("필요한 것을 꼼꼼히 챙겨 생활력이 보인다", { steadiness: 4, sincerity: 1 }),
-      pick("새로운 재료를 보고 즉석 요리를 제안한다", { adventure: 3, energy: 2 }),
-      pick("내가 좋아하는 간식을 기억하고 담아준다", { warmth: 3, romance: 2 }),
-    ],
-  },
-  {
-    category: "일상",
-    text: "집에서 쉬는 날 상대가 어떤 시간을 보내면 좋나요?",
-    options: [
-      pick("각자 쉬어도 같은 공간의 온기가 느껴진다", { warmth: 3, independence: 2 }),
-      pick("읽고 보던 것에 대해 깊은 이야기를 꺼낸다", { intellect: 4, sincerity: 1 }),
-      pick("갑자기 작은 홈카페나 음악회를 연다", { aesthetics: 3, romance: 2 }),
-    ],
-  },
-  {
-    category: "일상",
-    text: "아침 인사에서 가장 기분 좋아지는 방식은?",
-    options: [
-      pick("오늘 일정 힘내라는 짧은 응원을 보낸다", { warmth: 3, energy: 2 }),
-      pick("날씨나 컨디션을 살피며 무리하지 말라고 한다", { steadiness: 3, sincerity: 2 }),
-      pick("뜬금없는 귀여운 농담으로 하루를 열어준다", { humor: 4, romance: 1 }),
-    ],
-  },
-  {
-    category: "일상",
-    text: "함께 청소를 한다면 어떤 파트너가 좋은가요?",
-    options: [
-      pick("말없이도 역할을 나누고 꾸준히 해낸다", { steadiness: 4, sincerity: 1 }),
-      pick("음악을 틀고 분위기를 살려 지루하지 않게 한다", { energy: 3, humor: 2 }),
-      pick("공간의 배치와 디테일까지 예쁘게 정리한다", { aesthetics: 4, intellect: 1 }),
-    ],
-  },
-  {
-    category: "일상",
-    text: "피곤해서 말수가 줄어든 날 상대에게 바라는 것은?",
-    options: [
-      pick("캐묻지 않고 곁에서 편안하게 있어준다", { warmth: 3, steadiness: 2 }),
-      pick("필요한 것만 묻고 혼자 있을 시간을 존중한다", { independence: 3, sincerity: 2 }),
-      pick("가벼운 농담으로 부담 없이 웃게 해준다", { humor: 3, energy: 2 }),
-    ],
-  },
-  {
-    category: "일상",
-    text: "평범한 저녁 식사가 특별해지는 이유는?",
-    options: [
-      pick("서로의 하루를 진심으로 궁금해한다", { sincerity: 3, warmth: 2 }),
-      pick("플레이팅이나 음악처럼 작은 분위기를 챙긴다", { aesthetics: 4, romance: 1 }),
-      pick("새 메뉴에 도전하며 실패까지 즐긴다", { adventure: 3, humor: 2 }),
-    ],
-  },
-  {
-    category: "일상",
-    text: "상대의 생활 습관 중 가장 호감인 것은?",
-    options: [
-      pick("약속한 일을 미루지 않고 책임진다", { steadiness: 4, sincerity: 1 }),
-      pick("자기 루틴을 지키며 스스로를 돌본다", { independence: 4, intellect: 1 }),
-      pick("주변 사람들에게 작은 친절을 습관처럼 건넨다", { warmth: 4, sincerity: 1 }),
-    ],
-  },
-  {
-    category: "일상",
-    text: "같이 대중교통을 탈 때 끌리는 모습은?",
-    options: [
-      pick("사람이 많아도 내 동선을 자연스럽게 배려한다", { warmth: 4, steadiness: 1 }),
-      pick("창밖을 보며 재미있는 상상을 이야기한다", { humor: 3, aesthetics: 2 }),
-      pick("노선과 시간을 빠르게 파악해 안내한다", { intellect: 3, steadiness: 2 }),
-    ],
-  },
-  {
-    category: "일상",
-    text: "갑자기 시간이 빈 오후에 어떤 제안이 반가운가요?",
-    options: [
-      pick("동네를 천천히 걸으며 쉬자고 한다", { warmth: 3, steadiness: 2 }),
-      pick("근처에서 열리는 작은 행사를 찾아낸다", { adventure: 3, energy: 2 }),
-      pick("각자 하고 싶던 일을 하다가 저녁에 만나자고 한다", { independence: 4, sincerity: 1 }),
-    ],
-  },
-  {
-    category: "일상",
-    text: "반복되는 평일에도 마음이 식지 않는 이유는?",
-    options: [
-      pick("작은 안부와 배려가 꾸준히 이어진다", { warmth: 3, steadiness: 2 }),
-      pick("매일 한 가지씩 웃을 일을 만들어준다", { humor: 3, energy: 2 }),
-      pick("각자의 성장을 응원하는 대화가 있다", { intellect: 3, sincerity: 2 }),
-    ],
-  },
-
-  {
-    category: "취향",
-    text: "플레이리스트를 공유한다면 어떤 상대가 끌리나요?",
-    options: [
-      pick("내 감정에 맞는 노래를 골라 보내준다", { romance: 3, warmth: 2 }),
-      pick("새로운 장르를 소개하며 세계를 넓혀준다", { adventure: 3, intellect: 2 }),
-      pick("곡 순서와 분위기까지 자기 취향으로 완성한다", { aesthetics: 4, independence: 1 }),
-    ],
-  },
-  {
-    category: "취향",
-    text: "상대의 책장이나 작업 공간을 봤을 때 매력적인 점은?",
-    options: [
-      pick("관심사가 깊고 오래 쌓인 흔적이 보인다", { intellect: 4, sincerity: 1 }),
-      pick("정돈 방식에서 차분한 생활감이 느껴진다", { steadiness: 3, aesthetics: 2 }),
-      pick("남들이 잘 모르는 물건에 자기 이야기가 담겨 있다", { independence: 4, romance: 1 }),
-    ],
-  },
-  {
-    category: "취향",
-    text: "패션 취향이 다를 때 어떤 사람이 더 좋나요?",
-    options: [
-      pick("내 스타일을 바꾸려 하지 않고 존중한다", { independence: 3, sincerity: 2 }),
-      pick("서로 어울리는 포인트를 찾아 즐겁게 제안한다", { aesthetics: 3, warmth: 2 }),
-      pick("다름을 장난스럽게 받아들이며 웃는다", { humor: 3, energy: 2 }),
-    ],
-  },
-  {
-    category: "취향",
-    text: "맛집을 고를 때 가장 마음이 가는 기준은?",
-    options: [
-      pick("내가 편하게 먹을 수 있는지를 먼저 생각한다", { warmth: 3, steadiness: 2 }),
-      pick("분위기와 메뉴의 조화를 세심하게 본다", { aesthetics: 4, romance: 1 }),
-      pick("한 번도 안 먹어본 메뉴에 도전한다", { adventure: 4, energy: 1 }),
-    ],
-  },
-  {
-    category: "취향",
-    text: "전시회에서 상대와 함께라면 어떤 시간이 좋나요?",
-    options: [
-      pick("작품 앞에서 각자의 해석을 차분히 나눈다", { intellect: 4, aesthetics: 1 }),
-      pick("마음에 든 색과 장면을 사진처럼 기억한다", { aesthetics: 4, romance: 1 }),
-      pick("어려운 작품도 가볍게 웃으며 접근한다", { humor: 3, adventure: 2 }),
-    ],
-  },
-  {
-    category: "취향",
-    text: "상대가 오래 해온 취미를 소개할 때 끌리는 모습은?",
-    options: [
-      pick("잘난 척보다 좋아하는 마음이 먼저 보인다", { sincerity: 4, warmth: 1 }),
-      pick("초보자인 나도 즐길 수 있게 쉽게 알려준다", { warmth: 3, intellect: 2 }),
-      pick("자기만의 방식과 철학이 뚜렷하다", { independence: 4, aesthetics: 1 }),
-    ],
-  },
-  {
-    category: "취향",
-    text: "둘만의 취향을 새로 만든다면 무엇이 좋나요?",
-    options: [
-      pick("매달 한 번 새로운 동네를 탐험하는 약속", { adventure: 4, energy: 1 }),
-      pick("서로에게 어울리는 노래와 문장을 모으는 습관", { romance: 3, aesthetics: 2 }),
-      pick("함께 배운 것을 기록하고 발전시키는 루틴", { intellect: 3, steadiness: 2 }),
-    ],
-  },
-  {
-    category: "취향",
-    text: "상대가 좋아하는 영화를 강하게 추천한다면 어떤 방식이 좋나요?",
-    options: [
-      pick("왜 자신에게 소중한지 솔직히 설명한다", { sincerity: 4, romance: 1 }),
-      pick("내 취향과 맞을 지점을 섬세하게 짚어준다", { intellect: 3, warmth: 2 }),
-      pick("추천 실패도 웃어넘길 수 있게 가볍게 권한다", { humor: 3, steadiness: 2 }),
-    ],
-  },
-  {
-    category: "취향",
-    text: "인테리어 취향에서 가장 매력적으로 느껴지는 것은?",
-    options: [
-      pick("편안하고 오래 머물고 싶은 온도가 있다", { warmth: 3, steadiness: 2 }),
-      pick("색감과 조명이 자기답게 정돈되어 있다", { aesthetics: 4, independence: 1 }),
-      pick("여행과 경험의 흔적이 공간 곳곳에 있다", { adventure: 3, sincerity: 2 }),
-    ],
-  },
-  {
-    category: "취향",
-    text: "새로운 취미를 같이 시작할 때 기대되는 상대는?",
-    options: [
-      pick("서툰 과정을 함께 웃으며 즐긴다", { humor: 3, warmth: 2 }),
-      pick("배우는 방법을 찾아 꾸준히 실력이 는다", { intellect: 3, steadiness: 2 }),
-      pick("결과보다 해보는 용기를 먼저 낸다", { adventure: 4, energy: 1 }),
-    ],
-  },
-
-  {
-    category: "갈등",
-    text: "서운함을 말했을 때 가장 안심되는 반응은?",
-    options: [
-      pick("방어하지 않고 내 감정을 끝까지 들어준다", { warmth: 4, sincerity: 1 }),
-      pick("문제가 반복되지 않도록 구체적인 약속을 한다", { steadiness: 4, sincerity: 1 }),
-      pick("감정과 사실을 나누어 차분히 정리한다", { intellect: 4, steadiness: 1 }),
-    ],
-  },
-  {
-    category: "갈등",
-    text: "의견 충돌 후 화해하는 과정에서 중요한 것은?",
-    options: [
-      pick("먼저 손을 내밀어 관계의 온도를 회복한다", { warmth: 3, romance: 2 }),
-      pick("서로의 책임을 정확히 인정한다", { sincerity: 4, steadiness: 1 }),
-      pick("다음에는 다른 방식으로 시도해보자고 제안한다", { adventure: 3, intellect: 2 }),
-    ],
-  },
-  {
-    category: "갈등",
-    text: "상대가 화가 났을 때 어떤 모습이면 믿음이 가나요?",
-    options: [
-      pick("큰소리보다 시간을 두고 차분히 말한다", { steadiness: 4, sincerity: 1 }),
-      pick("상처 주는 농담을 하지 않고 선을 지킨다", { sincerity: 3, warmth: 2 }),
-      pick("감정이 가라앉은 뒤 해결책을 함께 찾는다", { intellect: 3, steadiness: 2 }),
-    ],
-  },
-  {
-    category: "갈등",
-    text: "내 실수로 분위기가 어색해졌을 때 바라는 상대는?",
-    options: [
-      pick("괜찮다고 말하며 다시 시도할 여유를 준다", { warmth: 4, steadiness: 1 }),
-      pick("실수를 가볍게 웃음으로 바꿔준다", { humor: 4, energy: 1 }),
-      pick("무엇을 고치면 좋을지 솔직하지만 다정하게 말한다", { sincerity: 3, intellect: 2 }),
-    ],
-  },
-  {
-    category: "갈등",
-    text: "약속 방식이 서로 다르다는 걸 알았을 때 좋은 태도는?",
-    options: [
-      pick("서로의 기준을 물어보고 중간 지점을 찾는다", { sincerity: 3, steadiness: 2 }),
-      pick("내 방식을 강요하지 않고 각자의 리듬을 인정한다", { independence: 4, warmth: 1 }),
-      pick("불편함을 줄이는 새로운 규칙을 같이 만든다", { intellect: 3, adventure: 2 }),
-    ],
-  },
-  {
-    category: "갈등",
-    text: "질투나 불안이 생겼을 때 어떤 사람이 안정감을 주나요?",
-    options: [
-      pick("숨기지 않고 관계의 경계를 분명히 말한다", { sincerity: 4, steadiness: 1 }),
-      pick("불안을 민망하게 만들지 않고 안심시켜준다", { warmth: 4, romance: 1 }),
-      pick("각자의 사생활과 신뢰를 균형 있게 지킨다", { independence: 3, steadiness: 2 }),
-    ],
-  },
-  {
-    category: "갈등",
-    text: "서로 바쁜 시기에 갈등이 생기면 어떤 해결이 좋나요?",
-    options: [
-      pick("짧게라도 시간을 정해 진심을 확인한다", { sincerity: 3, romance: 2 }),
-      pick("당장 해결할 것과 나중에 볼 것을 나눈다", { intellect: 3, steadiness: 2 }),
-      pick("잠깐의 웃음으로 숨 쉴 틈을 만든다", { humor: 3, warmth: 2 }),
-    ],
-  },
-  {
-    category: "갈등",
-    text: "상대가 사과할 때 가장 중요하게 느끼는 것은?",
-    options: [
-      pick("구체적으로 무엇이 미안한지 알고 있다", { sincerity: 4, intellect: 1 }),
-      pick("내 마음이 풀릴 때까지 재촉하지 않는다", { warmth: 3, steadiness: 2 }),
-      pick("같은 일이 반복되지 않게 행동을 바꾼다", { steadiness: 4, sincerity: 1 }),
-    ],
-  },
-  {
-    category: "갈등",
-    text: "관계에서 선을 정해야 할 때 끌리는 방식은?",
-    options: [
-      pick("부드럽지만 분명하게 자신의 기준을 말한다", { independence: 4, sincerity: 1 }),
-      pick("상대가 상처받지 않도록 말의 온도를 조절한다", { warmth: 3, aesthetics: 2 }),
-      pick("왜 그 선이 필요한지 논리적으로 설명한다", { intellect: 4, steadiness: 1 }),
-    ],
-  },
-  {
-    category: "갈등",
-    text: "갈등을 지나고도 더 가까워졌다고 느끼는 이유는?",
-    options: [
-      pick("서로의 약한 부분을 더 조심히 대하게 됐다", { warmth: 3, sincerity: 2 }),
-      pick("문제 해결 방식이 한층 단단해졌다", { steadiness: 3, intellect: 2 }),
-      pick("위기를 계기로 새로운 관계 방식을 만들었다", { adventure: 3, romance: 2 }),
-    ],
-  },
-
-  {
-    category: "연락",
-    text: "하루 중 연락이 가장 기분 좋게 느껴지는 순간은?",
-    options: [
-      pick("바쁜 중에도 짧게 내 안부를 챙긴다", { warmth: 3, sincerity: 2 }),
-      pick("재미있는 사진이나 문장으로 웃게 만든다", { humor: 3, energy: 2 }),
-      pick("오늘의 중요한 일을 기억하고 응원해준다", { steadiness: 3, romance: 2 }),
-    ],
-  },
-  {
-    category: "연락",
-    text: "답장이 늦어질 때 어떤 설명이 가장 편한가요?",
-    options: [
-      pick("늦어질 상황을 미리 알려 불안하지 않게 한다", { steadiness: 4, warmth: 1 }),
-      pick("나중에라도 이유와 마음을 솔직히 전한다", { sincerity: 4, romance: 1 }),
-      pick("각자의 집중 시간을 자연스럽게 존중한다", { independence: 4, intellect: 1 }),
-    ],
-  },
-  {
-    category: "연락",
-    text: "연락 빈도가 맞지 않을 때 이상적인 조율은?",
-    options: [
-      pick("서로 부담 없는 최소한의 약속을 정한다", { steadiness: 3, sincerity: 2 }),
-      pick("연락보다 만났을 때의 밀도를 더 중요하게 둔다", { romance: 3, independence: 2 }),
-      pick("새로운 방식의 짧은 체크인을 함께 실험한다", { adventure: 3, intellect: 2 }),
-    ],
-  },
-  {
-    category: "연락",
-    text: "갑자기 보고 싶다는 말을 들을 때 어떤 뉘앙스가 좋나요?",
-    options: [
-      pick("부담 주지 않고 마음만 다정하게 전한다", { warmth: 4, romance: 1 }),
-      pick("장난스럽게 말해도 진심이 느껴진다", { humor: 3, sincerity: 2 }),
-      pick("바로 볼 수 있는 현실적인 방법을 제안한다", { energy: 3, steadiness: 2 }),
-    ],
-  },
-  {
-    category: "연락",
-    text: "긴 문자를 받는다면 어떤 내용이 가장 좋나요?",
-    options: [
-      pick("내가 해준 말과 행동을 오래 기억해 적어준다", { romance: 4, sincerity: 1 }),
-      pick("요즘 고민을 솔직하게 공유하며 가까워진다", { sincerity: 4, warmth: 1 }),
-      pick("생각을 정리한 문장들이 배울 점을 준다", { intellect: 4, aesthetics: 1 }),
-    ],
-  },
-  {
-    category: "연락",
-    text: "음성 메시지를 보낸다면 어떤 분위기가 끌리나요?",
-    options: [
-      pick("낮은 목소리로 오늘 하루를 차분히 들려준다", { steadiness: 3, romance: 2 }),
-      pick("웃음 섞인 목소리로 생생한 에너지를 전한다", { energy: 3, humor: 2 }),
-      pick("짧지만 마음을 정확히 표현한다", { sincerity: 4, warmth: 1 }),
-    ],
-  },
-  {
-    category: "연락",
-    text: "연락에서 가장 피하고 싶은 불안이 사라지는 순간은?",
-    options: [
-      pick("말과 행동의 패턴이 꾸준히 맞아떨어진다", { steadiness: 4, sincerity: 1 }),
-      pick("모호한 표현보다 분명한 마음을 보여준다", { sincerity: 4, romance: 1 }),
-      pick("내가 묻지 않아도 필요한 맥락을 알려준다", { warmth: 3, intellect: 2 }),
-    ],
-  },
-  {
-    category: "연락",
-    text: "둘만의 연락 습관을 만든다면 어떤 것이 좋나요?",
-    options: [
-      pick("하루에 좋았던 일을 하나씩 나눈다", { warmth: 3, romance: 2 }),
-      pick("새로 알게 된 것을 짧게 공유한다", { intellect: 3, adventure: 2 }),
-      pick("웃긴 순간을 모아 둘만의 밈으로 만든다", { humor: 4, energy: 1 }),
-    ],
-  },
-  {
-    category: "연락",
-    text: "상대가 SNS를 대하는 방식 중 호감인 것은?",
-    options: [
-      pick("보여주기보다 실제 관계의 신뢰를 더 중시한다", { sincerity: 3, steadiness: 2 }),
-      pick("자기 취향과 일상을 감각적으로 기록한다", { aesthetics: 4, independence: 1 }),
-      pick("온라인에서도 상대를 배려하는 선을 지킨다", { warmth: 3, independence: 2 }),
-    ],
-  },
-  {
-    category: "연락",
-    text: "잠들기 전 마지막 연락으로 가장 좋은 것은?",
-    options: [
-      pick("오늘도 고생했다는 따뜻한 한마디", { warmth: 4, sincerity: 1 }),
-      pick("내일 기대되는 일을 함께 떠올리는 말", { energy: 3, adventure: 2 }),
-      pick("짧지만 로맨틱하게 마음을 남기는 문장", { romance: 4, aesthetics: 1 }),
-    ],
-  },
-
-  {
-    category: "미래",
-    text: "1년 뒤의 관계를 상상할 때 가장 바라는 모습은?",
-    options: [
-      pick("서로의 일상을 믿고 맡길 만큼 편안하다", { steadiness: 4, warmth: 1 }),
-      pick("함께 해본 경험이 많아 세계가 넓어졌다", { adventure: 4, energy: 1 }),
-      pick("처음보다 서로를 더 정확히 이해한다", { sincerity: 3, intellect: 2 }),
-    ],
-  },
-  {
-    category: "미래",
-    text: "장기적인 계획을 이야기할 때 끌리는 사람은?",
-    options: [
-      pick("현실적인 숫자와 책임을 피하지 않는다", { steadiness: 4, intellect: 1 }),
-      pick("꿈을 말할 때 눈빛과 에너지가 살아난다", { energy: 3, romance: 2 }),
-      pick("각자의 목표를 존중하는 구조를 함께 찾는다", { independence: 3, sincerity: 2 }),
-    ],
-  },
-  {
-    category: "미래",
-    text: "함께 살 공간을 상상한다면 가장 중요한 분위기는?",
-    options: [
-      pick("돌아오면 마음이 쉬는 안정적인 집", { steadiness: 3, warmth: 2 }),
-      pick("둘의 취향이 자연스럽게 섞인 감각적인 공간", { aesthetics: 4, romance: 1 }),
-      pick("각자의 작업과 휴식이 존중되는 구조", { independence: 4, intellect: 1 }),
-    ],
-  },
-  {
-    category: "미래",
-    text: "힘든 시기를 오래 함께 통과하려면 무엇이 필요할까요?",
-    options: [
-      pick("감정이 약해질 때도 서로를 다정하게 대하는 힘", { warmth: 4, sincerity: 1 }),
-      pick("문제를 작게 나누어 꾸준히 해결하는 힘", { steadiness: 4, intellect: 1 }),
-      pick("상황을 다르게 보는 유연함과 용기", { adventure: 3, humor: 2 }),
-    ],
-  },
-  {
-    category: "미래",
-    text: "서로의 커리어를 응원하는 방식으로 가장 좋은 것은?",
-    options: [
-      pick("성과보다 노력과 방향을 먼저 인정한다", { sincerity: 3, warmth: 2 }),
-      pick("필요한 정보와 아이디어를 함께 찾아준다", { intellect: 3, steadiness: 2 }),
-      pick("새로운 도전을 무서워하지 않게 북돋운다", { energy: 3, adventure: 2 }),
-    ],
-  },
-  {
-    category: "미래",
-    text: "나이가 들어도 유지됐으면 하는 매력은?",
-    options: [
-      pick("사소한 배려가 습관처럼 남아 있는 다정함", { warmth: 4, steadiness: 1 }),
-      pick("계속 배우고 질문하는 지적인 생동감", { intellect: 4, adventure: 1 }),
-      pick("자기다운 스타일을 잃지 않는 선명함", { independence: 3, aesthetics: 2 }),
-    ],
-  },
-  {
-    category: "미래",
-    text: "둘이 큰 결정을 내려야 할 때 이상적인 모습은?",
-    options: [
-      pick("자료를 보고 차분히 장단점을 따진다", { intellect: 4, steadiness: 1 }),
-      pick("서로의 마음이 다치지 않게 속도를 맞춘다", { warmth: 3, romance: 2 }),
-      pick("결정 후에는 함께 책임지고 움직인다", { sincerity: 3, energy: 2 }),
-    ],
-  },
-  {
-    category: "미래",
-    text: "관계가 오래될수록 더 좋아졌으면 하는 부분은?",
-    options: [
-      pick("말하지 않아도 필요한 배려를 알아차린다", { warmth: 3, steadiness: 2 }),
-      pick("새로운 주제와 경험으로 대화가 늙지 않는다", { intellect: 3, adventure: 2 }),
-      pick("익숙함 속에서도 설레는 표현을 잊지 않는다", { romance: 4, aesthetics: 1 }),
-    ],
-  },
-  {
-    category: "미래",
-    text: "가족이나 친구에게 소개할 때 자랑하고 싶은 점은?",
-    options: [
-      pick("사람을 편안하게 만드는 따뜻한 태도", { warmth: 4, sincerity: 1 }),
-      pick("어디서든 자기답게 행동하는 당당함", { independence: 4, energy: 1 }),
-      pick("말과 행동이 한결같아 믿을 수 있는 점", { steadiness: 4, sincerity: 1 }),
-    ],
-  },
-  {
-    category: "미래",
-    text: "함께 늦은 밤 미래를 상상한다면 어떤 이야기가 좋나요?",
-    options: [
-      pick("우리가 지키고 싶은 일상의 온도를 말한다", { warmth: 3, romance: 2 }),
-      pick("가보고 싶은 곳과 해보고 싶은 일을 그린다", { adventure: 4, energy: 1 }),
-      pick("각자의 꿈이 서로에게 어떤 의미인지 나눈다", { sincerity: 3, intellect: 2 }),
-    ],
-  },
-
-  {
-    category: "여행",
-    text: "첫 여행지를 고른다면 어떤 사람이 더 끌리나요?",
-    options: [
-      pick("교통과 숙소를 안정적으로 확인해 둔다", { steadiness: 4, sincerity: 1 }),
-      pick("현지 분위기와 골목의 감각을 중요하게 본다", { aesthetics: 3, adventure: 2 }),
-      pick("일단 떠나서 우연한 발견을 즐기자고 한다", { adventure: 4, energy: 1 }),
-    ],
-  },
-  {
-    category: "여행",
-    text: "여행 중 길을 잃었을 때 가장 좋은 반응은?",
-    options: [
-      pick("침착하게 현재 위치를 확인하고 안심시킨다", { steadiness: 4, warmth: 1 }),
-      pick("예상 밖의 길도 여행의 일부라며 웃는다", { adventure: 3, humor: 2 }),
-      pick("현지 사람에게 정중히 물어보며 해결한다", { sincerity: 3, energy: 2 }),
-    ],
-  },
-  {
-    category: "여행",
-    text: "숙소에서 쉬는 시간에 상대가 무엇을 하면 좋나요?",
-    options: [
-      pick("서로 피곤한 정도를 살피며 일정을 조절한다", { warmth: 3, steadiness: 2 }),
-      pick("오늘 본 풍경을 사진과 글로 정리한다", { aesthetics: 3, sincerity: 2 }),
-      pick("내일 해볼 즉흥 코스를 찾아본다", { adventure: 3, energy: 2 }),
-    ],
-  },
-  {
-    category: "여행",
-    text: "여행 사진을 고를 때 가장 마음에 드는 기준은?",
-    options: [
-      pick("둘이 자연스럽게 웃는 순간이 담겼다", { warmth: 3, romance: 2 }),
-      pick("빛과 배경이 영화처럼 예쁘다", { aesthetics: 4, romance: 1 }),
-      pick("실수와 장난까지 보여주는 생생한 장면이다", { humor: 3, adventure: 2 }),
-    ],
-  },
-  {
-    category: "여행",
-    text: "현지 음식이 낯설 때 어떤 상대가 좋나요?",
-    options: [
-      pick("내 입맛과 컨디션을 먼저 배려한다", { warmth: 4, steadiness: 1 }),
-      pick("조금씩 나눠 먹으며 경험을 넓혀준다", { adventure: 3, romance: 2 }),
-      pick("음식의 배경이나 문화를 궁금해한다", { intellect: 3, sincerity: 2 }),
-    ],
-  },
-  {
-    category: "여행",
-    text: "예산을 정해 여행할 때 끌리는 태도는?",
-    options: [
-      pick("중요한 곳과 아낄 곳을 현실적으로 나눈다", { steadiness: 4, intellect: 1 }),
-      pick("작은 돈으로도 특별한 경험을 찾아낸다", { adventure: 3, aesthetics: 2 }),
-      pick("서로 부담되지 않게 솔직히 이야기한다", { sincerity: 4, warmth: 1 }),
-    ],
-  },
-  {
-    category: "여행",
-    text: "여행 일정이 너무 빡빡해졌을 때 좋은 선택은?",
-    options: [
-      pick("과감히 줄이고 몸과 마음의 여유를 만든다", { steadiness: 3, warmth: 2 }),
-      pick("가장 설레는 하나만 남겨 집중해서 즐긴다", { romance: 3, independence: 2 }),
-      pick("즉흥적으로 동선을 바꿔 새로운 재미를 찾는다", { adventure: 4, energy: 1 }),
-    ],
-  },
-  {
-    category: "여행",
-    text: "공항이나 역에서 기다리는 시간에 끌리는 모습은?",
-    options: [
-      pick("필요한 서류와 시간을 꼼꼼히 챙긴다", { steadiness: 4, sincerity: 1 }),
-      pick("기다림을 작은 데이트처럼 만들어준다", { romance: 3, humor: 2 }),
-      pick("낯선 사람과 공간을 관찰하며 이야깃거리를 만든다", { intellect: 3, aesthetics: 2 }),
-    ],
-  },
-  {
-    category: "여행",
-    text: "돌아오는 길에 어떤 사람이 더 오래 기억될까요?",
-    options: [
-      pick("여행 내내 내 컨디션을 세심하게 살폈다", { warmth: 4, sincerity: 1 }),
-      pick("예상 못 한 순간마다 즐거운 용기를 냈다", { adventure: 4, energy: 1 }),
-      pick("여행의 의미를 함께 정리해 깊이를 남겼다", { intellect: 3, romance: 2 }),
-    ],
-  },
-  {
-    category: "여행",
-    text: "다음 여행을 또 함께 가고 싶어지는 이유는?",
-    options: [
-      pick("계획과 즉흥의 균형이 편안했다", { steadiness: 3, adventure: 2 }),
-      pick("평범한 풍경도 둘만의 장면으로 만들었다", { aesthetics: 3, romance: 2 }),
-      pick("어려운 순간에도 서로를 탓하지 않았다", { sincerity: 4, warmth: 1 }),
-    ],
-  },
-
-  {
-    category: "위기",
-    text: "내가 갑자기 몸이 안 좋을 때 어떤 사람이 좋나요?",
-    options: [
-      pick("필요한 약과 휴식을 조용히 챙겨준다", { warmth: 4, steadiness: 1 }),
-      pick("병원이나 이동 동선을 빠르게 정리한다", { steadiness: 4, intellect: 1 }),
-      pick("불안하지 않게 곁에서 솔직히 상황을 공유한다", { sincerity: 3, warmth: 2 }),
-    ],
-  },
-  {
-    category: "위기",
-    text: "갑자기 돈이나 일정 문제가 생겼을 때 끌리는 태도는?",
-    options: [
-      pick("감정적으로 몰아붙이지 않고 사실을 확인한다", { intellect: 3, steadiness: 2 }),
-      pick("책임질 부분을 피하지 않고 바로 나선다", { sincerity: 4, energy: 1 }),
-      pick("위기 속에서도 서로의 자존심을 지켜준다", { warmth: 3, independence: 2 }),
-    ],
-  },
-  {
-    category: "위기",
-    text: "내가 큰 실망을 겪은 날 상대에게 가장 바라는 것은?",
-    options: [
-      pick("조언보다 먼저 내 편이라는 느낌을 준다", { warmth: 4, romance: 1 }),
-      pick("상황을 객관적으로 보며 다음 선택을 돕는다", { intellect: 3, steadiness: 2 }),
-      pick("다시 움직일 힘이 생기도록 밝은 기운을 준다", { energy: 3, sincerity: 2 }),
-    ],
-  },
-  {
-    category: "위기",
-    text: "둘 다 지쳐 예민한 날 관계를 지키는 방법은?",
-    options: [
-      pick("상처 줄 말을 멈추고 잠깐 쉬어간다", { steadiness: 4, warmth: 1 }),
-      pick("지금 힘든 이유를 솔직하게 인정한다", { sincerity: 4, intellect: 1 }),
-      pick("작은 웃음으로 긴장을 낮춘 뒤 대화한다", { humor: 3, romance: 2 }),
-    ],
-  },
-  {
-    category: "위기",
-    text: "상대가 실패를 겪었을 때 어떤 모습이 멋있나요?",
-    options: [
-      pick("남 탓보다 배운 점을 먼저 찾는다", { intellect: 3, sincerity: 2 }),
-      pick("무너져도 다시 해보려는 에너지가 있다", { energy: 4, adventure: 1 }),
-      pick("약한 모습을 숨기지 않고 나눌 줄 안다", { sincerity: 3, warmth: 2 }),
-    ],
-  },
-  {
-    category: "위기",
-    text: "중요한 선택 앞에서 내가 흔들릴 때 필요한 상대는?",
-    options: [
-      pick("내가 진짜 원하는 것을 다시 묻게 해준다", { intellect: 3, sincerity: 2 }),
-      pick("실패해도 곁에 있겠다는 안정감을 준다", { warmth: 4, steadiness: 1 }),
-      pick("새로운 가능성을 두려워하지 않게 한다", { adventure: 3, energy: 2 }),
-    ],
-  },
-  {
-    category: "위기",
-    text: "갑작스러운 변화가 생겼을 때 더 믿음직한 사람은?",
-    options: [
-      pick("우선순위를 정하고 차근차근 처리한다", { steadiness: 4, intellect: 1 }),
-      pick("변화를 새로운 기회로 해석한다", { adventure: 4, independence: 1 }),
-      pick("사람들의 마음을 살피며 분위기를 안정시킨다", { warmth: 3, sincerity: 2 }),
-    ],
-  },
-  {
-    category: "위기",
-    text: "내가 자존감이 낮아진 날 듣고 싶은 말은?",
-    options: [
-      pick("네가 버틴 시간을 내가 알고 있어", { warmth: 4, sincerity: 1 }),
-      pick("지금의 결과가 네 가능성 전체는 아니야", { intellect: 3, steadiness: 2 }),
-      pick("오늘은 내가 즐겁게 해줄게", { humor: 3, romance: 2 }),
-    ],
-  },
-  {
-    category: "위기",
-    text: "관계가 권태로워졌다고 느낄 때 필요한 변화는?",
-    options: [
-      pick("익숙한 루틴 안에서 놓친 배려를 회복한다", { warmth: 3, steadiness: 2 }),
-      pick("안 해본 경험으로 관계에 새 공기를 넣는다", { adventure: 4, energy: 1 }),
-      pick("서로의 진짜 욕구를 솔직히 다시 묻는다", { sincerity: 3, intellect: 2 }),
-    ],
-  },
-  {
-    category: "위기",
-    text: "어려운 시간을 지나고 상대에게 더 깊이 끌리는 이유는?",
-    options: [
-      pick("힘들 때 더 다정해지는 사람이라는 걸 봤다", { warmth: 4, sincerity: 1 }),
-      pick("흔들려도 중심을 잃지 않는 태도를 봤다", { steadiness: 4, independence: 1 }),
-      pick("위기에서도 웃을 수 있는 여유를 봤다", { humor: 3, energy: 2 }),
-    ],
-  },
+    "category": "외모 취향",
+    "text": "이상형의 얼굴상을 하나로 고른다면 어디에 가장 끌리나요?",
+    "options": [
+      {
+        "label": "여우상처럼 눈매가 길고 영리한 분위기",
+        "scores": {
+          "aesthetics": 3,
+          "independence": 2
+        }
+      },
+      {
+        "label": "늑대상처럼 선이 또렷하고 강단 있는 분위기",
+        "scores": {
+          "independence": 3,
+          "steadiness": 2
+        }
+      },
+      {
+        "label": "공룡상처럼 큼직하고 장난기 있는 분위기",
+        "scores": {
+          "energy": 3,
+          "humor": 2
+        }
+      },
+      {
+        "label": "강아지상처럼 웃는 인상이 편하고 선한 분위기",
+        "scores": {
+          "warmth": 3,
+          "sincerity": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "외모 취향",
+    "text": "처음 눈이 마주쳤을 때 더 오래 남는 눈매는 어떤 쪽인가요?",
+    "options": [
+      {
+        "label": "끝선이 살짝 올라가 시크하고 또렷한 눈매",
+        "scores": {
+          "aesthetics": 3,
+          "independence": 2
+        }
+      },
+      {
+        "label": "둥글고 맑아서 경계가 풀리는 선한 눈매",
+        "scores": {
+          "warmth": 3,
+          "sincerity": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "외모 취향",
+    "text": "눈빛의 온도에서 더 끌리는 느낌은 무엇인가요?",
+    "options": [
+      {
+        "label": "차분하게 깊어서 생각을 읽고 싶어지는 눈빛",
+        "scores": {
+          "intellect": 3,
+          "steadiness": 2
+        }
+      },
+      {
+        "label": "밝게 반짝여서 바로 말을 걸고 싶어지는 눈빛",
+        "scores": {
+          "energy": 3,
+          "humor": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "외모 취향",
+    "text": "웃는 얼굴에서 가장 설레는 포인트는 어디인가요?",
+    "options": [
+      {
+        "label": "입꼬리가 살짝 올라가 장난스럽게 설레는 미소",
+        "scores": {
+          "humor": 3,
+          "romance": 2
+        }
+      },
+      {
+        "label": "활짝 웃을 때 주변 공기까지 부드러워지는 미소",
+        "scores": {
+          "energy": 3,
+          "humor": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "외모 취향",
+    "text": "얼굴선이나 윤곽에서 마음이 가는 쪽은 무엇인가요?",
+    "options": [
+      {
+        "label": "선이 날렵해서 도시적이고 세련된 윤곽",
+        "scores": {
+          "aesthetics": 3,
+          "intellect": 2
+        }
+      },
+      {
+        "label": "선이 부드러워 오래 볼수록 편안한 윤곽",
+        "scores": {
+          "warmth": 3,
+          "steadiness": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "외모 취향",
+    "text": "첫인상 표정은 어느 쪽이 더 궁금해지나요?",
+    "options": [
+      {
+        "label": "조금 도도해서 쉽게 읽히지 않는 표정",
+        "scores": {
+          "independence": 3,
+          "aesthetics": 2
+        }
+      },
+      {
+        "label": "처음부터 마음을 열어주는 순한 표정",
+        "scores": {
+          "warmth": 3,
+          "sincerity": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "외모 취향",
+    "text": "피부와 전체 인상에서 더 호감인 결은 무엇인가요?",
+    "options": [
+      {
+        "label": "깨끗하고 단정해서 자기관리가 느껴지는 결",
+        "scores": {
+          "intellect": 3,
+          "steadiness": 2
+        }
+      },
+      {
+        "label": "자연스럽고 생기 있어 가까이서 더 좋아지는 결",
+        "scores": {
+          "energy": 3,
+          "romance": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "외모 취향",
+    "text": "헤어스타일에서 먼저 눈에 들어오는 매력은 무엇인가요?",
+    "options": [
+      {
+        "label": "정돈된 라인과 깔끔한 실루엣",
+        "scores": {
+          "steadiness": 3,
+          "intellect": 2
+        }
+      },
+      {
+        "label": "살짝 흐트러져도 자연스러운 질감",
+        "scores": {
+          "romance": 3,
+          "adventure": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "외모 취향",
+    "text": "헤어 무드가 준다면 어떤 인상이 더 좋나요?",
+    "options": [
+      {
+        "label": "차분하고 고급스러워 분위기를 잡아주는 무드",
+        "scores": {
+          "aesthetics": 3,
+          "steadiness": 2
+        }
+      },
+      {
+        "label": "밝고 변화가 있어 볼 때마다 새로워지는 무드",
+        "scores": {
+          "energy": 3,
+          "independence": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "외모 취향",
+    "text": "옷차림의 전체 무드를 고른다면 어느 쪽인가요?",
+    "options": [
+      {
+        "label": "미니멀하고 단정한 셔츠·니트 계열",
+        "scores": {
+          "intellect": 3,
+          "steadiness": 2
+        }
+      },
+      {
+        "label": "포인트가 있는 키치하거나 유니크한 계열",
+        "scores": {
+          "independence": 3,
+          "humor": 2
+        }
+      },
+      {
+        "label": "부드러운 색감의 로맨틱한 데이트룩",
+        "scores": {
+          "romance": 3,
+          "warmth": 2
+        }
+      },
+      {
+        "label": "활동성이 느껴지는 캐주얼·스포티 계열",
+        "scores": {
+          "energy": 3,
+          "adventure": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "외모 취향",
+    "text": "옷 핏에서 더 끌리는 기준은 무엇인가요?",
+    "options": [
+      {
+        "label": "각이 살아 있어 단정하고 믿음직한 핏",
+        "scores": {
+          "intellect": 3,
+          "steadiness": 2
+        }
+      },
+      {
+        "label": "편안하게 몸에 맞아 같이 걷고 싶은 핏",
+        "scores": {
+          "adventure": 3,
+          "sincerity": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "외모 취향",
+    "text": "상대에게 잘 어울리는 색감으로 더 끌리는 쪽은 무엇인가요?",
+    "options": [
+      {
+        "label": "블랙·네이비·그레이처럼 선명한 무채색",
+        "scores": {
+          "independence": 3,
+          "intellect": 2
+        }
+      },
+      {
+        "label": "크림·핑크·브라운처럼 따뜻한 부드러운 색",
+        "scores": {
+          "romance": 3,
+          "humor": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "외모 취향",
+    "text": "액세서리나 디테일은 어느 정도가 좋나요?",
+    "options": [
+      {
+        "label": "거의 없지만 전체가 정돈되어 보이는 절제",
+        "scores": {
+          "intellect": 3,
+          "sincerity": 2
+        }
+      },
+      {
+        "label": "작은 반지·안경·향처럼 기억나는 포인트",
+        "scores": {
+          "aesthetics": 3,
+          "humor": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "외모 취향",
+    "text": "실루엣에서 더 마음이 가는 타입은 어떤 쪽인가요?",
+    "options": [
+      {
+        "label": "가볍고 슬림해서 움직임이 민첩해 보이는 실루엣",
+        "scores": {
+          "adventure": 3,
+          "aesthetics": 2
+        }
+      },
+      {
+        "label": "탄탄하고 안정적이라 기대고 싶어지는 실루엣",
+        "scores": {
+          "steadiness": 2,
+          "sincerity": 3
+        }
+      }
+    ]
+  },
+  {
+    "category": "외모 취향",
+    "text": "전체 체형이 주는 분위기로 더 끌리는 것은 무엇인가요?",
+    "options": [
+      {
+        "label": "선이 길고 시원해 사진에서 바로 눈에 띄는 분위기",
+        "scores": {
+          "aesthetics": 3,
+          "energy": 2
+        }
+      },
+      {
+        "label": "포근하고 균형 있어 실제로 보면 더 편한 분위기",
+        "scores": {
+          "warmth": 3,
+          "steadiness": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "외모 취향",
+    "text": "키와 비율에서 더 중요하게 느끼는 것은 무엇인가요?",
+    "options": [
+      {
+        "label": "멀리서도 눈에 띄는 긴 비율과 존재감",
+        "scores": {
+          "independence": 3,
+          "aesthetics": 2
+        }
+      },
+      {
+        "label": "내 옆에 섰을 때 자연스럽게 맞는 균형감",
+        "scores": {
+          "romance": 3,
+          "warmth": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "외모 취향",
+    "text": "걸음걸이나 자세에서 매력적인 장면은 무엇인가요?",
+    "options": [
+      {
+        "label": "허리가 곧고 여유 있어 차분한 신뢰가 생긴다",
+        "scores": {
+          "intellect": 3,
+          "steadiness": 2
+        }
+      },
+      {
+        "label": "걸음이 가볍고 리듬이 살아 함께 움직이고 싶다",
+        "scores": {
+          "energy": 3,
+          "adventure": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "외모 취향",
+    "text": "손짓이나 작은 제스처에서 끌리는 쪽은 어느 쪽인가요?",
+    "options": [
+      {
+        "label": "섬세하고 조심스러워 배려가 느껴지는 움직임",
+        "scores": {
+          "warmth": 3,
+          "sincerity": 2
+        }
+      },
+      {
+        "label": "시원시원하고 자신감 있어 분위기를 여는 움직임",
+        "scores": {
+          "energy": 3,
+          "adventure": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "외모 취향",
+    "text": "목소리까지 포함한 첫인상에서 더 좋은 결은 무엇인가요?",
+    "options": [
+      {
+        "label": "낮고 차분해서 얼굴 분위기와 안정적으로 맞는 결",
+        "scores": {
+          "intellect": 3,
+          "steadiness": 2
+        }
+      },
+      {
+        "label": "맑고 밝아서 표정까지 더 생기 있어 보이는 결",
+        "scores": {
+          "energy": 3,
+          "humor": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "외모 취향",
+    "text": "프로필 사진 한 장에서 더 호감이 생기는 방식은 무엇인가요?",
+    "options": [
+      {
+        "label": "구도와 빛이 깔끔해서 완성도가 높은 사진",
+        "scores": {
+          "aesthetics": 3,
+          "intellect": 2
+        }
+      },
+      {
+        "label": "일상 스냅처럼 자연스러워 실제 성격이 보이는 사진",
+        "scores": {
+          "sincerity": 3,
+          "adventure": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "외모 취향",
+    "text": "정면 사진에서 가장 먼저 보는 포인트는 무엇인가요?",
+    "options": [
+      {
+        "label": "눈·코·입의 선이 또렷하게 잡힌 균형",
+        "scores": {
+          "aesthetics": 3,
+          "steadiness": 2
+        }
+      },
+      {
+        "label": "표정이 부드러워 말 걸기 쉬운 분위기",
+        "scores": {
+          "warmth": 3,
+          "romance": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "외모 취향",
+    "text": "옆모습에서 더 오래 기억되는 포인트는 무엇인가요?",
+    "options": [
+      {
+        "label": "콧대와 턱선이 이어지는 선명한 라인",
+        "scores": {
+          "aesthetics": 3,
+          "independence": 2
+        }
+      },
+      {
+        "label": "입매와 볼선이 부드럽게 남기는 온기",
+        "scores": {
+          "romance": 3,
+          "humor": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "외모 취향",
+    "text": "웃을 때 더 설레는 디테일은 무엇인가요?",
+    "options": [
+      {
+        "label": "눈이 먼저 웃어서 표정 전체가 풀리는 디테일",
+        "scores": {
+          "warmth": 3,
+          "sincerity": 2
+        }
+      },
+      {
+        "label": "입꼬리와 눈썹이 같이 움직여 장난기가 도는 디테일",
+        "scores": {
+          "humor": 3,
+          "energy": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "외모 취향",
+    "text": "메이크업이나 그루밍은 어떤 방향이 더 좋나요?",
+    "options": [
+      {
+        "label": "티 나지 않게 자연스럽지만 깔끔한 방향",
+        "scores": {
+          "sincerity": 3,
+          "intellect": 2
+        }
+      },
+      {
+        "label": "선명한 포인트로 자기 분위기를 드러내는 방향",
+        "scores": {
+          "independence": 3,
+          "aesthetics": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "외모 취향",
+    "text": "안경이나 프레임이 어울린다면 어떤 느낌이 좋나요?",
+    "options": [
+      {
+        "label": "지적인 분위기를 더해주는 얇고 단정한 프레임",
+        "scores": {
+          "intellect": 3,
+          "aesthetics": 2
+        }
+      },
+      {
+        "label": "인상을 부드럽게 만들어주는 둥근 프레임",
+        "scores": {
+          "warmth": 3,
+          "romance": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "외모 취향",
+    "text": "향이나 청결감까지 떠올렸을 때 더 좋은 이미지는 무엇인가요?",
+    "options": [
+      {
+        "label": "비누향처럼 깨끗하고 가까이 있어도 편한 이미지",
+        "scores": {
+          "warmth": 3,
+          "steadiness": 2
+        }
+      },
+      {
+        "label": "우디향처럼 기억에 남고 취향이 선명한 이미지",
+        "scores": {
+          "aesthetics": 3,
+          "independence": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "외모 취향",
+    "text": "계절감 있는 스타일로 상상하면 어느 쪽이 끌리나요?",
+    "options": [
+      {
+        "label": "폭신한 니트가 잘 어울리는 따뜻한 겨울 분위기",
+        "scores": {
+          "warmth": 3,
+          "romance": 2
+        }
+      },
+      {
+        "label": "가벼운 셔츠가 잘 어울리는 산뜻한 봄 분위기",
+        "scores": {
+          "energy": 3,
+          "adventure": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "외모 취향",
+    "text": "데이트룩에서 더 마음이 가는 완성도는 무엇인가요?",
+    "options": [
+      {
+        "label": "꾸민 듯 안 꾸민 듯 자연스럽게 좋은 완성도",
+        "scores": {
+          "sincerity": 3,
+          "adventure": 2
+        }
+      },
+      {
+        "label": "만남을 위해 신경 쓴 티가 나는 선명한 완성도",
+        "scores": {
+          "romance": 3,
+          "energy": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "외모 취향",
+    "text": "운동복이나 편한 복장에서 더 보이는 매력은 무엇인가요?",
+    "options": [
+      {
+        "label": "건강하고 활기 있어 같이 움직이고 싶은 매력",
+        "scores": {
+          "energy": 3,
+          "adventure": 2
+        }
+      },
+      {
+        "label": "힘을 뺀 모습에서도 흐트러지지 않는 편안한 매력",
+        "scores": {
+          "adventure": 3,
+          "sincerity": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "외모 취향",
+    "text": "사진 속 포즈는 어느 쪽이 더 매력적인가요?",
+    "options": [
+      {
+        "label": "정면을 자연스럽게 바라보는 차분한 포즈",
+        "scores": {
+          "sincerity": 3,
+          "intellect": 2
+        }
+      },
+      {
+        "label": "몸을 살짝 틀거나 움직임이 느껴지는 자유로운 포즈",
+        "scores": {
+          "adventure": 3,
+          "humor": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "외모 취향",
+    "text": "카메라를 보는 방식에서 더 끌리는 쪽은 무엇인가요?",
+    "options": [
+      {
+        "label": "직선적으로 바라봐 자신감이 느껴지는 시선",
+        "scores": {
+          "independence": 3,
+          "energy": 2
+        }
+      },
+      {
+        "label": "살짝 수줍게 바라봐 여운이 남는 시선",
+        "scores": {
+          "romance": 3,
+          "warmth": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "외모 취향",
+    "text": "동물상으로 다시 고른다면 어떤 분위기가 궁금한가요?",
+    "options": [
+      {
+        "label": "고양이상처럼 조용하지만 시선이 가는 분위기",
+        "scores": {
+          "aesthetics": 3,
+          "independence": 2
+        }
+      },
+      {
+        "label": "토끼상처럼 맑고 보호본능을 자극하는 분위기",
+        "scores": {
+          "romance": 3,
+          "humor": 2
+        }
+      },
+      {
+        "label": "곰상처럼 든든하고 포근한 분위기",
+        "scores": {
+          "steadiness": 2,
+          "sincerity": 3
+        }
+      },
+      {
+        "label": "사슴상처럼 선하고 섬세한 분위기",
+        "scores": {
+          "sincerity": 3,
+          "intellect": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "외모 취향",
+    "text": "턱선과 볼선에서 더 마음이 가는 쪽은 무엇인가요?",
+    "options": [
+      {
+        "label": "턱선이 선명해서 인상이 또렷해지는 쪽",
+        "scores": {
+          "independence": 3,
+          "aesthetics": 2
+        }
+      },
+      {
+        "label": "볼선이 부드러워 인상이 순해지는 쪽",
+        "scores": {
+          "warmth": 3,
+          "romance": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "외모 취향",
+    "text": "눈썹이 주는 인상은 어떤 쪽이 더 좋나요?",
+    "options": [
+      {
+        "label": "진하고 선명해서 표정에 힘이 생기는 눈썹",
+        "scores": {
+          "energy": 3,
+          "independence": 2
+        }
+      },
+      {
+        "label": "부드러운 아치로 인상을 편하게 만드는 눈썹",
+        "scores": {
+          "sincerity": 3,
+          "intellect": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "외모 취향",
+    "text": "말하기 직전의 입매에서 더 끌리는 느낌은 무엇인가요?",
+    "options": [
+      {
+        "label": "단정하게 닫혀 있어 차분함이 느껴지는 입매",
+        "scores": {
+          "intellect": 3,
+          "sincerity": 2
+        }
+      },
+      {
+        "label": "곧 웃을 것처럼 부드럽게 풀린 입매",
+        "scores": {
+          "romance": 3,
+          "humor": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "외모 취향",
+    "text": "헤어 컬러나 톤은 어느 쪽이 더 취향인가요?",
+    "options": [
+      {
+        "label": "자연 흑갈색처럼 안정적으로 잘 어울리는 톤",
+        "scores": {
+          "sincerity": 3,
+          "intellect": 2
+        }
+      },
+      {
+        "label": "브라운·애쉬처럼 분위기를 바꾸는 세련된 톤",
+        "scores": {
+          "aesthetics": 3,
+          "independence": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "외모 취향",
+    "text": "얼굴을 비추는 조명에서 더 예뻐 보이는 분위기는 무엇인가요?",
+    "options": [
+      {
+        "label": "대비가 선명해 이목구비가 또렷해지는 조명",
+        "scores": {
+          "aesthetics": 3,
+          "intellect": 2
+        }
+      },
+      {
+        "label": "따뜻한 빛으로 표정의 온기가 살아나는 조명",
+        "scores": {
+          "warmth": 3,
+          "romance": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "외모 취향",
+    "text": "전체 이미지의 배경까지 상상하면 어느 쪽인가요?",
+    "options": [
+      {
+        "label": "도시적인 카페나 거리와 잘 맞는 세련된 이미지",
+        "scores": {
+          "aesthetics": 3,
+          "independence": 2
+        }
+      },
+      {
+        "label": "공원이나 여행지와 잘 맞는 자연스러운 이미지",
+        "scores": {
+          "adventure": 3,
+          "energy": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "외모 취향",
+    "text": "여러 장의 사진을 본다면 어떤 타입에게 더 마음이 가나요?",
+    "options": [
+      {
+        "label": "한 장만 봐도 임팩트가 강한 첫눈형",
+        "scores": {
+          "independence": 3,
+          "aesthetics": 2
+        }
+      },
+      {
+        "label": "여러 장을 볼수록 매력이 쌓이는 볼수록형",
+        "scores": {
+          "sincerity": 3,
+          "intellect": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "외모 취향",
+    "text": "외모에서 마지막으로 가장 중요하게 남는 것은 무엇인가요?",
+    "options": [
+      {
+        "label": "한눈에 설명되는 선명한 매력",
+        "scores": {
+          "aesthetics": 3,
+          "energy": 2
+        }
+      },
+      {
+        "label": "볼수록 마음이 가는 자연스러운 여운",
+        "scores": {
+          "romance": 3,
+          "sincerity": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "첫만남",
+    "text": "약속 장소에 먼저 도착한 상대에게 더 끌리는 행동은 무엇인가요?",
+    "options": [
+      {
+        "label": "위치와 상황을 알려주며 편하게 오라고 배려한다",
+        "scores": {
+          "warmth": 3,
+          "steadiness": 2
+        }
+      },
+      {
+        "label": "주변을 살펴 분위기 좋은 자리를 먼저 찾아둔다",
+        "scores": {
+          "aesthetics": 3,
+          "energy": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "첫만남",
+    "text": "첫 대화를 여는 방식으로 더 좋은 것은 무엇인가요?",
+    "options": [
+      {
+        "label": "내 이야기를 자연스럽게 꺼내게 하는 질문을 건넨다",
+        "scores": {
+          "intellect": 3,
+          "sincerity": 2
+        }
+      },
+      {
+        "label": "작은 농담으로 어색함을 빠르게 풀어준다",
+        "scores": {
+          "humor": 3,
+          "energy": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "첫만남",
+    "text": "낯선 모임에서 상대에게 시선이 가는 순간은 언제인가요?",
+    "options": [
+      {
+        "label": "혼자 있는 사람을 눈치껏 챙겨 분위기를 부드럽게 한다",
+        "scores": {
+          "warmth": 3,
+          "sincerity": 2
+        }
+      },
+      {
+        "label": "자기 의견을 조용하지만 분명하게 말해 존재감이 남는다",
+        "scores": {
+          "intellect": 3,
+          "independence": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "첫만남",
+    "text": "취향이 다르다는 걸 알았을 때 더 매력적인 반응은 무엇인가요?",
+    "options": [
+      {
+        "label": "왜 좋아하는지 진심으로 궁금해하며 들어본다",
+        "scores": {
+          "sincerity": 3,
+          "intellect": 2
+        }
+      },
+      {
+        "label": "다름을 귀엽게 받아들이며 웃음 포인트로 만든다",
+        "scores": {
+          "humor": 3,
+          "energy": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "첫만남",
+    "text": "첫 만남 후 집에 가는 길에 더 오래 남는 말은 무엇인가요?",
+    "options": [
+      {
+        "label": "오늘 좋았던 장면을 구체적으로 말해준다",
+        "scores": {
+          "romance": 3,
+          "sincerity": 2
+        }
+      },
+      {
+        "label": "도착하면 알려달라며 부담 없이 안부를 챙긴다",
+        "scores": {
+          "warmth": 3,
+          "steadiness": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "대화",
+    "text": "내 고민을 들을 때 더 믿음이 가는 방식은 무엇인가요?",
+    "options": [
+      {
+        "label": "감정을 먼저 알아주고 해결책은 천천히 제안한다",
+        "scores": {
+          "warmth": 3,
+          "sincerity": 2
+        }
+      },
+      {
+        "label": "문제를 차분히 정리해 선택지를 보여준다",
+        "scores": {
+          "intellect": 3,
+          "steadiness": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "대화",
+    "text": "의견이 갈렸을 때 더 좋은 태도는 무엇인가요?",
+    "options": [
+      {
+        "label": "근거를 나누며 서로의 관점을 넓히려 한다",
+        "scores": {
+          "intellect": 3,
+          "steadiness": 2
+        }
+      },
+      {
+        "label": "이견보다 관계의 온도를 먼저 지켜준다",
+        "scores": {
+          "romance": 3,
+          "humor": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "대화",
+    "text": "침묵이 생겼을 때 더 편하게 느껴지는 사람은 누구인가요?",
+    "options": [
+      {
+        "label": "억지로 채우지 않아도 같은 공간이 편안한 사람",
+        "scores": {
+          "independence": 3,
+          "romance": 2
+        }
+      },
+      {
+        "label": "엉뚱한 질문으로 분위기를 새롭게 열어주는 사람",
+        "scores": {
+          "humor": 3,
+          "adventure": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "대화",
+    "text": "칭찬을 들을 때 더 설레는 표현은 무엇인가요?",
+    "options": [
+      {
+        "label": "내가 애쓴 과정과 태도를 정확히 알아봐 준다",
+        "scores": {
+          "sincerity": 3,
+          "intellect": 2
+        }
+      },
+      {
+        "label": "아주 작은 디테일까지 기억해 구체적으로 말해준다",
+        "scores": {
+          "romance": 3,
+          "aesthetics": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "대화",
+    "text": "상대가 자기 꿈을 말할 때 더 멋있는 모습은 무엇인가요?",
+    "options": [
+      {
+        "label": "현실적인 계획과 책임감을 함께 보여준다",
+        "scores": {
+          "intellect": 3,
+          "steadiness": 2
+        }
+      },
+      {
+        "label": "말하는 눈빛과 목소리에 에너지가 살아난다",
+        "scores": {
+          "energy": 3,
+          "adventure": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "대화",
+    "text": "서로의 과거 이야기를 나눌 때 가장 중요한 태도는 무엇인가요?",
+    "options": [
+      {
+        "label": "판단보다 이해하려는 마음으로 끝까지 들어준다",
+        "scores": {
+          "sincerity": 3,
+          "intellect": 2
+        }
+      },
+      {
+        "label": "무겁지 않게 받아들이되 가볍게 소비하지 않는다",
+        "scores": {
+          "steadiness": 3,
+          "intellect": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "데이트",
+    "text": "주말 오후 데이트로 더 끌리는 제안은 무엇인가요?",
+    "options": [
+      {
+        "label": "조용한 카페에서 오래 이야기하고 산책한다",
+        "scores": {
+          "romance": 3,
+          "warmth": 2
+        }
+      },
+      {
+        "label": "가본 적 없는 동네를 정해 가볍게 탐험한다",
+        "scores": {
+          "adventure": 3,
+          "energy": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "데이트",
+    "text": "예약이 갑자기 취소됐을 때 더 좋은 반응은 무엇인가요?",
+    "options": [
+      {
+        "label": "침착하게 대안을 찾고 내 기분까지 살핀다",
+        "scores": {
+          "steadiness": 3,
+          "warmth": 2
+        }
+      },
+      {
+        "label": "오히려 새로운 발견이라며 즐겁게 방향을 바꾼다",
+        "scores": {
+          "adventure": 3,
+          "humor": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "데이트",
+    "text": "함께 사진을 찍는다면 어떤 사람이 더 좋나요?",
+    "options": [
+      {
+        "label": "자연스럽게 웃는 순간을 놓치지 않는 사람",
+        "scores": {
+          "energy": 3,
+          "humor": 2
+        }
+      },
+      {
+        "label": "구도와 빛을 신경 써 예쁜 한 장을 만드는 사람",
+        "scores": {
+          "aesthetics": 3,
+          "romance": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "데이트",
+    "text": "데이트 비용을 다루는 태도로 더 편한 것은 무엇인가요?",
+    "options": [
+      {
+        "label": "서로 부담 없도록 균형을 먼저 맞추려 한다",
+        "scores": {
+          "steadiness": 3,
+          "intellect": 2
+        }
+      },
+      {
+        "label": "상황에 따라 기분 좋게 번갈아 챙긴다",
+        "scores": {
+          "romance": 3,
+          "energy": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "데이트",
+    "text": "하루 데이트가 끝난 뒤 더 듣고 싶은 말은 무엇인가요?",
+    "options": [
+      {
+        "label": "오늘 너랑 있어서 마음이 정말 편했어",
+        "scores": {
+          "warmth": 3,
+          "steadiness": 2
+        }
+      },
+      {
+        "label": "오늘 그 장면이 계속 생각날 것 같아",
+        "scores": {
+          "romance": 3,
+          "aesthetics": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "일상",
+    "text": "평일 루틴에서 더 호감인 모습은 무엇인가요?",
+    "options": [
+      {
+        "label": "약속한 일을 미루지 않고 꾸준히 해낸다",
+        "scores": {
+          "steadiness": 2,
+          "sincerity": 3
+        }
+      },
+      {
+        "label": "갑자기 빈 시간에도 작은 재미를 찾아낸다",
+        "scores": {
+          "energy": 3,
+          "adventure": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "일상",
+    "text": "집에서 쉬는 날 더 좋은 관계의 모습은 무엇인가요?",
+    "options": [
+      {
+        "label": "각자 쉬어도 같은 공간의 온기가 느껴진다",
+        "scores": {
+          "independence": 3,
+          "romance": 2
+        }
+      },
+      {
+        "label": "작은 홈카페나 음악처럼 함께할 이벤트를 만든다",
+        "scores": {
+          "aesthetics": 3,
+          "romance": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "일상",
+    "text": "같이 장을 볼 때 더 매력적인 모습은 무엇인가요?",
+    "options": [
+      {
+        "label": "필요한 것을 꼼꼼히 챙겨 생활력이 보인다",
+        "scores": {
+          "steadiness": 3,
+          "sincerity": 2
+        }
+      },
+      {
+        "label": "내가 좋아하는 간식을 기억하고 슬쩍 담아준다",
+        "scores": {
+          "romance": 3,
+          "humor": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "일상",
+    "text": "피곤해서 말수가 줄어든 날 상대에게 더 바라는 것은 무엇인가요?",
+    "options": [
+      {
+        "label": "캐묻지 않고 곁에서 편안하게 있어준다",
+        "scores": {
+          "independence": 3,
+          "steadiness": 2
+        }
+      },
+      {
+        "label": "가벼운 농담으로 부담 없이 웃게 해준다",
+        "scores": {
+          "humor": 3,
+          "energy": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "일상",
+    "text": "반복되는 평일에도 마음이 식지 않는 이유는 무엇인가요?",
+    "options": [
+      {
+        "label": "작은 안부와 배려가 꾸준히 이어진다",
+        "scores": {
+          "sincerity": 3,
+          "steadiness": 2
+        }
+      },
+      {
+        "label": "각자의 성장을 응원하는 대화가 계속 있다",
+        "scores": {
+          "intellect": 3,
+          "sincerity": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "연락",
+    "text": "연락 빈도에서 더 편한 방식은 무엇인가요?",
+    "options": [
+      {
+        "label": "짧아도 매일 일정한 리듬으로 마음을 확인한다",
+        "scores": {
+          "romance": 3,
+          "steadiness": 2
+        }
+      },
+      {
+        "label": "각자의 집중 시간을 존중하고 만났을 때 밀도를 높인다",
+        "scores": {
+          "independence": 3,
+          "sincerity": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "연락",
+    "text": "답장이 늦어질 때 더 안심되는 방식은 무엇인가요?",
+    "options": [
+      {
+        "label": "늦어질 상황을 미리 알려 불필요한 불안을 줄인다",
+        "scores": {
+          "sincerity": 3,
+          "steadiness": 2
+        }
+      },
+      {
+        "label": "나중에라도 이유와 마음을 솔직히 전한다",
+        "scores": {
+          "sincerity": 3,
+          "romance": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "연락",
+    "text": "잠들기 전 마지막 연락으로 더 좋은 것은 무엇인가요?",
+    "options": [
+      {
+        "label": "오늘도 고생했다는 따뜻한 한마디",
+        "scores": {
+          "warmth": 3,
+          "sincerity": 2
+        }
+      },
+      {
+        "label": "내일 같이 기대할 일을 떠올리게 하는 말",
+        "scores": {
+          "romance": 3,
+          "energy": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "연락",
+    "text": "SNS를 대하는 방식 중 더 호감인 것은 무엇인가요?",
+    "options": [
+      {
+        "label": "보여주기보다 실제 관계의 신뢰를 더 중시한다",
+        "scores": {
+          "sincerity": 3,
+          "independence": 2
+        }
+      },
+      {
+        "label": "자기 취향과 일상을 감각적으로 기록한다",
+        "scores": {
+          "aesthetics": 3,
+          "independence": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "갈등",
+    "text": "서운함을 말했을 때 더 안심되는 반응은 무엇인가요?",
+    "options": [
+      {
+        "label": "방어하지 않고 내 감정을 끝까지 들어준다",
+        "scores": {
+          "sincerity": 3,
+          "intellect": 2
+        }
+      },
+      {
+        "label": "같은 문제가 반복되지 않도록 구체적인 약속을 한다",
+        "scores": {
+          "intellect": 3,
+          "steadiness": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "갈등",
+    "text": "상대가 사과할 때 더 중요하게 느끼는 것은 무엇인가요?",
+    "options": [
+      {
+        "label": "무엇이 미안한지 구체적으로 알고 말한다",
+        "scores": {
+          "sincerity": 3,
+          "intellect": 2
+        }
+      },
+      {
+        "label": "말에서 끝나지 않고 다음 행동을 바꾼다",
+        "scores": {
+          "energy": 3,
+          "steadiness": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "갈등",
+    "text": "질투나 불안이 생겼을 때 더 안정되는 방식은 무엇인가요?",
+    "options": [
+      {
+        "label": "관계의 경계를 분명히 말해 안심시킨다",
+        "scores": {
+          "independence": 3,
+          "sincerity": 2
+        }
+      },
+      {
+        "label": "각자의 사생활과 신뢰를 균형 있게 지킨다",
+        "scores": {
+          "independence": 3,
+          "sincerity": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "갈등",
+    "text": "상대가 화가 났을 때 더 믿음이 가는 모습은 무엇인가요?",
+    "options": [
+      {
+        "label": "큰소리보다 시간을 두고 차분히 말한다",
+        "scores": {
+          "intellect": 3,
+          "steadiness": 2
+        }
+      },
+      {
+        "label": "감정을 숨기지 않되 상처 주는 말은 피한다",
+        "scores": {
+          "sincerity": 3,
+          "intellect": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "갈등",
+    "text": "관계가 권태로워졌을 때 더 필요한 변화는 무엇인가요?",
+    "options": [
+      {
+        "label": "익숙한 루틴 안에서 놓친 배려를 회복한다",
+        "scores": {
+          "romance": 3,
+          "sincerity": 2
+        }
+      },
+      {
+        "label": "안 해본 경험으로 관계에 새 공기를 넣는다",
+        "scores": {
+          "adventure": 3,
+          "energy": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "가치관",
+    "text": "돈을 쓰는 기준에서 더 맞았으면 하는 태도는 무엇인가요?",
+    "options": [
+      {
+        "label": "중요한 곳과 아낄 곳을 현실적으로 나눈다",
+        "scores": {
+          "intellect": 3,
+          "steadiness": 2
+        }
+      },
+      {
+        "label": "돈보다 경험의 만족도와 추억을 더 중시한다",
+        "scores": {
+          "adventure": 3,
+          "aesthetics": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "가치관",
+    "text": "가족이나 친구에게 소개할 때 더 자랑하고 싶은 점은 무엇인가요?",
+    "options": [
+      {
+        "label": "사람을 편안하게 만드는 따뜻하고 예의 있는 태도",
+        "scores": {
+          "warmth": 3,
+          "sincerity": 2
+        }
+      },
+      {
+        "label": "어디서든 자기답게 행동하는 당당한 색깔",
+        "scores": {
+          "independence": 3,
+          "energy": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "가치관",
+    "text": "서로의 커리어를 응원하는 방식으로 더 좋은 것은 무엇인가요?",
+    "options": [
+      {
+        "label": "성과보다 노력과 방향을 먼저 인정한다",
+        "scores": {
+          "sincerity": 3,
+          "energy": 2
+        }
+      },
+      {
+        "label": "필요한 정보와 아이디어를 함께 찾아준다",
+        "scores": {
+          "intellect": 3,
+          "steadiness": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "가치관",
+    "text": "연애에서 독립성은 어느 쪽에 더 가까워야 편한가요?",
+    "options": [
+      {
+        "label": "중요한 순간에는 최대한 함께 시간을 보내는 쪽",
+        "scores": {
+          "romance": 3,
+          "warmth": 2
+        }
+      },
+      {
+        "label": "각자의 시간과 목표가 분명히 보장되는 쪽",
+        "scores": {
+          "independence": 3,
+          "sincerity": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "가치관",
+    "text": "사랑 표현으로 더 잘 와닿는 방식은 무엇인가요?",
+    "options": [
+      {
+        "label": "말보다 행동으로 꾸준히 챙겨주는 방식",
+        "scores": {
+          "steadiness": 3,
+          "warmth": 2
+        }
+      },
+      {
+        "label": "마음을 말과 분위기로 자주 표현하는 방식",
+        "scores": {
+          "romance": 3,
+          "energy": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "미래",
+    "text": "함께 살 공간을 상상할 때 더 중요한 분위기는 무엇인가요?",
+    "options": [
+      {
+        "label": "돌아오면 마음이 쉬는 안정적인 집",
+        "scores": {
+          "romance": 3,
+          "steadiness": 2
+        }
+      },
+      {
+        "label": "둘의 취향이 자연스럽게 섞인 감각적인 공간",
+        "scores": {
+          "aesthetics": 3,
+          "romance": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "미래",
+    "text": "둘이 큰 결정을 내려야 할 때 더 좋은 모습은 무엇인가요?",
+    "options": [
+      {
+        "label": "자료를 보고 차분히 장단점을 따진다",
+        "scores": {
+          "intellect": 3,
+          "steadiness": 2
+        }
+      },
+      {
+        "label": "서로의 마음이 다치지 않게 속도를 맞춘다",
+        "scores": {
+          "romance": 3,
+          "sincerity": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "미래",
+    "text": "힘든 시기를 오래 함께 통과하려면 무엇이 더 필요할까요?",
+    "options": [
+      {
+        "label": "감정이 약해질 때도 서로를 다정하게 대하는 힘",
+        "scores": {
+          "warmth": 3,
+          "sincerity": 2
+        }
+      },
+      {
+        "label": "문제를 작게 나누어 꾸준히 해결하는 힘",
+        "scores": {
+          "intellect": 3,
+          "steadiness": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "미래",
+    "text": "첫 여행을 함께 간다면 더 믿음직한 사람은 누구인가요?",
+    "options": [
+      {
+        "label": "교통과 숙소를 안정적으로 확인해 두는 사람",
+        "scores": {
+          "sincerity": 3,
+          "steadiness": 2
+        }
+      },
+      {
+        "label": "우연한 발견을 즐기며 일정에 숨을 주는 사람",
+        "scores": {
+          "adventure": 3,
+          "humor": 2
+        }
+      }
+    ]
+  },
+  {
+    "category": "미래",
+    "text": "오래 만나도 계속 유지됐으면 하는 매력은 무엇인가요?",
+    "options": [
+      {
+        "label": "사소한 배려가 습관처럼 남아 있는 다정함",
+        "scores": {
+          "romance": 3,
+          "steadiness": 2
+        }
+      },
+      {
+        "label": "계속 배우고 질문하는 지적인 생동감",
+        "scores": {
+          "intellect": 3,
+          "adventure": 2
+        }
+      }
+    ]
+  }
 ];
 
 const questionBank = questionBlueprints.map((question, index) => ({
@@ -1173,13 +1871,57 @@ function activeQuestions() {
 }
 
 function prepareQuestionRun() {
-  const openingQuestions = questionBank.filter((question) => question.category === appearanceCategory);
-  const shuffledQuestions = questionBank.filter((question) => question.category !== appearanceCategory);
-  for (let index = shuffledQuestions.length - 1; index > 0; index -= 1) {
-    const swapIndex = Math.floor(Math.random() * (index + 1));
-    [shuffledQuestions[index], shuffledQuestions[swapIndex]] = [shuffledQuestions[swapIndex], shuffledQuestions[index]];
+  const appearanceQuestions = shuffleQuestions(questionBank.filter((question) => question.category === appearanceCategory));
+  const nonAppearanceQuestions = shuffleQuestions(questionBank.filter((question) => question.category !== appearanceCategory));
+  const appearanceTarget = Math.min(
+    appearanceQuestions.length,
+    Math.round(state.mode * targetAppearanceQuestionShare),
+  );
+  const nonAppearanceTarget = Math.min(nonAppearanceQuestions.length, state.mode - appearanceTarget);
+  let selectedAppearance = appearanceQuestions.slice(0, appearanceTarget);
+  let selectedNonAppearance = nonAppearanceQuestions.slice(0, nonAppearanceTarget);
+
+  const selectedTotal = selectedAppearance.length + selectedNonAppearance.length;
+  if (selectedTotal < state.mode) {
+    const remainingAppearance = appearanceQuestions.slice(selectedAppearance.length);
+    const remainingNonAppearance = nonAppearanceQuestions.slice(selectedNonAppearance.length);
+    const fillers = [...remainingAppearance, ...remainingNonAppearance].slice(0, state.mode - selectedTotal);
+    fillers.forEach((question) => {
+      if (question.category === appearanceCategory) {
+        selectedAppearance.push(question);
+      } else {
+        selectedNonAppearance.push(question);
+      }
+    });
   }
-  state.questionOrder = [...openingQuestions, ...shuffledQuestions].slice(0, state.mode).map((question) => question.id);
+
+  state.questionOrder = interleaveQuestionPools(selectedAppearance, selectedNonAppearance)
+    .slice(0, state.mode)
+    .map((question) => question.id);
+}
+
+function shuffleQuestions(questions) {
+  const shuffled = [...questions];
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(Math.random() * (index + 1));
+    [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
+  }
+  return shuffled;
+}
+
+function interleaveQuestionPools(primary, secondary) {
+  const result = [];
+  const maxLength = Math.max(primary.length, secondary.length);
+  for (let index = 0; index < maxLength; index += 1) {
+    if (primary[index]) result.push(primary[index]);
+    if (secondary[index]) result.push(secondary[index]);
+  }
+  return result;
+}
+
+function normalizeQuizMode(mode) {
+  const normalized = Number(mode);
+  return quizModes.includes(normalized) ? normalized : quizModes[0];
 }
 
 function showScreen(name) {
@@ -1189,7 +1931,7 @@ function showScreen(name) {
 }
 
 function setMode(mode) {
-  state.mode = mode;
+  state.mode = normalizeQuizMode(mode);
   state.current = 0;
   state.answers = [];
   prepareQuestionRun();
@@ -1384,26 +2126,33 @@ function getTopTraits(scores, limit = 3) {
     .slice(0, limit);
 }
 
+function getScoreTotal(scores) {
+  return Object.values(scores).reduce((sum, value) => sum + value, 0);
+}
+
 function getNormalizedTraits(scores) {
-  const max = Math.max(...Object.values(scores), 1);
+  const total = getScoreTotal(scores);
   return Object.entries(scores)
     .map(([key, value]) => ({
       key,
       value,
-      percent: Math.round((value / max) * 100),
+      percent: total > 0 ? Math.round((value / total) * 100) : 0,
     }))
     .sort((a, b) => b.value - a.value);
 }
 
 function buildProfile() {
   const scores = computeScores();
+  const appearanceScores = computeAppearanceScores();
+  const nonAppearanceScores = computeNonAppearanceScores();
   const portraitScores = computePortraitScores();
   const top = getTopTraits(scores, 4);
   const portraitTop = getTopTraits(portraitScores, 4);
   const title = makeTitle(top);
-  const summary = makeSummary(top);
+  const profile = { scores, appearanceScores, nonAppearanceScores, portraitScores, top, portraitTop, title };
+  const summary = makeSummary(profile);
   const prompt = makePrompt(portraitTop);
-  return { scores, portraitScores, top, portraitTop, title, summary, prompt };
+  return { ...profile, summary, prompt };
 }
 
 function makeTitle(top) {
@@ -1425,9 +2174,53 @@ function makeTitle(top) {
   return `${firstLabel}${particle(firstLabel, "과", "와")} ${secondLabel}${particle(secondLabel, "을", "를")} 가진 ${endings[first.key]}`;
 }
 
-function makeSummary(top) {
-  const labels = top.map((trait) => traitMeta[trait.key].label);
-  return `당신의 이상형은 ${labels[0]}, ${labels[1]}, ${labels[2]}의 점수가 높게 나왔어요. 첫눈에 강렬한 자극만 주는 사람보다, 함께 있을수록 표정과 말투의 결이 선명해지는 타입에 마음이 기울 가능성이 커요.`;
+function makeSummary(profile) {
+  const allTraits = getNormalizedTraits(profile.scores);
+  const topThree = allTraits.slice(0, 3);
+  const [first, second, third] = topThree;
+  const positiveTraits = allTraits.filter((trait) => trait.value > 0);
+  const lowest = positiveTraits[positiveTraits.length - 1] || allTraits[allTraits.length - 1];
+  const appearanceTop = getNormalizedTraits(profile.appearanceScores)
+    .filter((trait) => trait.value > 0)
+    .slice(0, 2);
+  const relationshipTop = getNormalizedTraits(profile.nonAppearanceScores)
+    .filter((trait) => trait.value > 0)
+    .slice(0, 2);
+  const portraitTop = getNormalizedTraits(profile.portraitScores).slice(0, 2);
+  const appearanceWeight = Math.round(portraitAppearanceWeight * 100);
+  const relationshipWeight = 100 - appearanceWeight;
+
+  const firstCopy = traitResultCopy[first.key];
+  const secondCopy = traitResultCopy[second.key];
+  const thirdCopy = traitResultCopy[third.key];
+  const lowestCopy = traitResultCopy[lowest.key];
+
+  return [
+    `전체 답변 점수 기준으로는 ${formatTraitShare(first)}, ${formatTraitShare(second)}, ${formatTraitShare(third)}가 가장 높게 나왔어요. 이 비율은 최고점을 100으로 둔 상대 점수가 아니라, 전체 선택 점수 중 각 성향이 차지한 몫이에요. 그래서 특정 성향이 1위여도 무조건 100%로 보이지 않아요.`,
+    `${firstCopy.core} ${secondCopy.detail} 여기에 ${traitMeta[third.key].label} 성향도 함께 올라와서, 단순히 한 가지 매력만 강한 사람보다 ${traitMeta[first.key].phrase}${particle(traitMeta[first.key].phrase, "과", "와")} ${traitMeta[second.key].phrase}${particle(traitMeta[second.key].phrase, "이", "가")} 동시에 느껴지는 사람에게 더 오래 끌릴 가능성이 커요.`,
+    `외모 문항만 보면 ${formatTraitShareList(appearanceTop)} 쪽으로 기울었고, 관계·대화 문항에서는 ${formatTraitShareList(relationshipTop)}이 두드러졌어요. 사진 타입은 외모 취향 ${appearanceWeight}%와 관계 성향 ${relationshipWeight}%를 섞어 고르도록 설계했기 때문에, 얼굴상이나 스타일 취향이 결과 사진에 충분히 반영되면서도 실제로 오래 만났을 때 중요한 태도까지 같이 들어가요. 이번 사진 선택 축은 ${formatTraitShareList(portraitTop)}에 가까워요.`,
+    `${describeTraitBalance(topThree)} 상대적으로 ${traitMeta[lowest.key].label}은 ${lowest.percent}%로 낮게 잡혔는데, 이는 그 매력이 싫다는 뜻보다는 지금 답변 패턴에서 우선순위가 낮았다는 뜻이에요. ${lowestCopy.low} 결과적으로 당신의 이상형은 첫눈에 보이는 분위기와 관계 안에서 쌓이는 신뢰가 함께 맞아야 허무하지 않게 오래 설레는 타입이에요.`,
+  ].join("\n\n");
+}
+
+function formatTraitShare(trait) {
+  return `${traitMeta[trait.key].label} ${trait.percent}%`;
+}
+
+function formatTraitShareList(traits) {
+  if (!traits.length) return "아직 뚜렷한 성향 없음";
+  return traits.map(formatTraitShare).join(" · ");
+}
+
+function describeTraitBalance(topThree) {
+  const gap = topThree[0].percent - topThree[2].percent;
+  if (gap <= 4) {
+    return "상위 세 성향의 차이가 크지 않아, 한쪽으로 극단적인 이상형보다 상황에 따라 여러 매력이 섞인 사람을 좋아하는 편이에요.";
+  }
+  if (gap >= 12) {
+    return `특히 ${traitMeta[topThree[0].key].label}이 뚜렷하게 앞서서, 이 성향이 없는 사람에게는 다른 장점이 있어도 호감이 오래 유지되기 어려울 수 있어요.`;
+  }
+  return "상위 성향이 비교적 선명하지만, 한 가지 조건만 맞는 사람보다는 두세 가지 매력이 균형 있게 보일 때 더 확신이 생기는 편이에요.";
 }
 
 function makePrompt(top) {
@@ -1475,7 +2268,7 @@ function renderTraitList(scores) {
     item.innerHTML = `
       <span>${traitMeta[trait.key].label}</span>
       <span class="trait-meter"><span style="width: ${trait.percent}%"></span></span>
-      <span>${trait.percent}</span>
+      <span>${trait.percent}%</span>
     `;
     els.traitList.append(item);
   });
@@ -2266,7 +3059,8 @@ function randomSample() {
   prepareQuestionRun();
   state.answers = activeQuestions().map((_, index) => {
     const seed = hashAnswers(`${Date.now()}-${index}-${state.mode}`);
-    return Math.floor(mulberry32(seed)() * 3);
+    const question = activeQuestions()[index];
+    return Math.floor(mulberry32(seed)() * question.options.length);
   });
   state.current = state.mode - 1;
   state.started = true;
@@ -2431,7 +3225,7 @@ function createPlacardCanvas(profile) {
     ctx.fillText(traitMeta[trait.key].label, x + 22, rowY + 31);
     ctx.fillStyle = "rgba(36,33,43,0.56)";
     ctx.textAlign = "right";
-    ctx.fillText(`${trait.percent}`, x + chipW - 22, rowY + 31);
+    ctx.fillText(`${trait.percent}%`, x + chipW - 22, rowY + 31);
     ctx.textAlign = "left";
   });
   y += Math.ceil(traits.length / 2) * 64 + 20;

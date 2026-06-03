@@ -53,32 +53,43 @@ function loadApp() {
   return context;
 }
 
-test("app ships 110 distinct randomized questions", () => {
+test("app ships 80 distinct redesigned questions", () => {
   const context = loadApp();
-  const count = vm.runInContext("questionBank.length", context);
-  const uniqueTexts = vm.runInContext("new Set(questionBank.map((question) => question.text)).size", context);
-  const uniqueOptionLabels = vm.runInContext(
-    "new Set(questionBank.flatMap((question) => question.options.map((option) => option.label))).size",
-    context,
-  );
-  const optionCount = vm.runInContext(
-    "questionBank.flatMap((question) => question.options.map((option) => option.label)).length",
+  const result = vm.runInContext(
+    `(() => {
+      const optionLabels = questionBank.flatMap((question) => question.options.map((option) => option.label));
+      return {
+        count: questionBank.length,
+        appearanceCount: questionBank.filter((question) => question.category === appearanceCategory).length,
+        uniqueTexts: new Set(questionBank.map((question) => question.text)).size,
+        optionCount: optionLabels.length,
+        uniqueOptionLabels: new Set(optionLabels).size,
+        twoChoiceCount: questionBank.filter((question) => question.options.length === 2).length,
+        fourChoiceCount: questionBank.filter((question) => question.options.length === 4).length,
+        unsupportedChoiceCount: questionBank.filter((question) => ![2, 4].includes(question.options.length)).length,
+        averageQuestionLength: questionBank.reduce((sum, question) => sum + question.text.length, 0) / questionBank.length,
+      };
+    })()`,
     context,
   );
 
-  assert.equal(count, 110);
-  assert.equal(uniqueTexts, 110);
-  assert.equal(optionCount, 330);
-  assert.equal(uniqueOptionLabels, 330);
-  assert.equal(vm.runInContext("questionBank.every((question) => question.options.length === 3)", context), true);
+  assert.equal(result.count, 80);
+  assert.equal(result.appearanceCount, 40);
+  assert.equal(result.uniqueTexts, 80);
+  assert.equal(result.optionCount, 166);
+  assert.equal(result.uniqueOptionLabels, 166);
+  assert.equal(result.twoChoiceCount, 77);
+  assert.equal(result.fourChoiceCount, 3);
+  assert.equal(result.unsupportedChoiceCount, 0);
+  assert.equal(result.averageQuestionLength > 28, true);
 });
 
-test("appearance preference questions are placed at the front", () => {
+test("appearance preference questions cover concrete face and style types", () => {
   const context = loadApp();
   const result = vm.runInContext(
     `(() => ({
-      categories: questionBank.slice(0, 10).map((question) => question.category),
-      copy: questionBank.slice(0, 10).flatMap((question) => [
+      categories: questionBank.filter((question) => question.category === appearanceCategory).map((question) => question.category),
+      copy: questionBank.filter((question) => question.category === appearanceCategory).flatMap((question) => [
         question.text,
         ...question.options.map((option) => option.label),
       ]).join(" "),
@@ -88,29 +99,47 @@ test("appearance preference questions are placed at the front", () => {
 
   assert.equal(result.categories.every((category) => category === "외모 취향"), true);
   assert.match(result.copy, /여우/);
+  assert.match(result.copy, /늑대/);
+  assert.match(result.copy, /공룡/);
   assert.match(result.copy, /강아지/);
-  assert.match(result.copy, /원숭이/);
+  assert.match(result.copy, /미니멀/);
+  assert.match(result.copy, /키치/);
 });
 
-test("selected quiz questions are shuffled and unique per run", () => {
+test("selected quiz questions stay unique and keep a 50% appearance ratio", () => {
   const context = loadApp();
   const result = vm.runInContext(
     `(() => {
+      setMode(80);
+      const order80 = state.questionOrder.map((id) => questionMap.get(id));
       setMode(50);
+      const order50 = state.questionOrder.map((id) => questionMap.get(id));
+      setMode(20);
+      const order20 = state.questionOrder.map((id) => questionMap.get(id));
       return {
-        length: state.questionOrder.length,
-        unique: new Set(state.questionOrder).size,
-        openingCategories: state.questionOrder
-          .slice(0, 10)
-          .map((id) => questionMap.get(id).category),
+        order80Length: order80.length,
+        order80Unique: new Set(order80.map((question) => question.id)).size,
+        order80Appearance: order80.filter((question) => question.category === appearanceCategory).length,
+        order50Length: order50.length,
+        order50Unique: new Set(order50.map((question) => question.id)).size,
+        order50Appearance: order50.filter((question) => question.category === appearanceCategory).length,
+        order20Length: order20.length,
+        order20Unique: new Set(order20.map((question) => question.id)).size,
+        order20Appearance: order20.filter((question) => question.category === appearanceCategory).length,
       };
     })()`,
     context,
   );
 
-  assert.equal(result.length, 50);
-  assert.equal(result.unique, 50);
-  assert.equal(result.openingCategories.every((category) => category === "외모 취향"), true);
+  assert.equal(result.order80Length, 80);
+  assert.equal(result.order80Unique, 80);
+  assert.equal(result.order80Appearance, 40);
+  assert.equal(result.order50Length, 50);
+  assert.equal(result.order50Unique, 50);
+  assert.equal(result.order50Appearance, 25);
+  assert.equal(result.order20Length, 20);
+  assert.equal(result.order20Unique, 20);
+  assert.equal(result.order20Appearance, 10);
 });
 
 test("Gemini copy prompt pins a youthful 20s age range", () => {
@@ -176,26 +205,74 @@ test("portrait asset selection uses the winning trait and one of five WebP varia
   assert.equal(selected.src, "/assets/portraits-webp/adventure/man/30s/005.webp");
 });
 
-test("portrait selection is driven primarily by opening appearance answers", () => {
+test("portrait scoring blends appearance and relationship answers at 50% each", () => {
   const context = loadApp();
   const result = vm.runInContext(
     `(() => {
-      state.questionOrder = questionBank.slice(0, 20).map((question) => question.id);
-      state.mode = 20;
-      state.answers = Array(20).fill(0);
+      const appearanceQuestion = questionBank.find((question) =>
+        question.category === appearanceCategory &&
+        question.options.some((option) => option.scores.aesthetics === 3 && option.scores.independence === 2)
+      );
+      const relationshipQuestion = questionBank.find((question) =>
+        question.category !== appearanceCategory &&
+        question.options.some((option) => option.scores.warmth === 3 && option.scores.steadiness === 2)
+      );
+      const appearanceIndex = appearanceQuestion.options.findIndex((option) => option.scores.aesthetics === 3);
+      const relationshipIndex = relationshipQuestion.options.findIndex((option) => option.scores.warmth === 3);
+      state.questionOrder = [appearanceQuestion.id, relationshipQuestion.id];
+      state.mode = 2;
+      state.answers = [appearanceIndex, relationshipIndex];
       const profile = buildProfile();
       return {
-        appearanceTop: getTopTraits(computeAppearanceScores(), 1)[0].key,
-        portraitTop: profile.portraitTop[0].key,
-        selectedTrait: selectPortraitAsset(profile).trait,
+        weight: portraitAppearanceWeight,
+        aesthetics: profile.portraitScores.aesthetics,
+        independence: profile.portraitScores.independence,
+        warmth: profile.portraitScores.warmth,
+        steadiness: profile.portraitScores.steadiness,
       };
     })()`,
     context,
   );
 
-  assert.equal(result.appearanceTop, "aesthetics");
-  assert.equal(result.portraitTop, "aesthetics");
-  assert.equal(result.selectedTrait, "aesthetics");
+  assert.equal(result.weight, 0.5);
+  assert.equal(result.aesthetics, 0.3);
+  assert.equal(result.independence, 0.2);
+  assert.equal(result.warmth, 0.3);
+  assert.equal(result.steadiness, 0.2);
+});
+
+test("result copy and trait meters use total-score percentages", () => {
+  const context = loadApp();
+  const result = vm.runInContext(
+    `(() => {
+      const normalized = getNormalizedTraits({
+        warmth: 10,
+        energy: 5,
+        humor: 0,
+        intellect: 0,
+        steadiness: 0,
+        aesthetics: 0,
+        romance: 0,
+        independence: 0,
+        adventure: 0,
+        sincerity: 0,
+      });
+      state.answers = activeQuestions().map((question) => 0);
+      const profile = buildProfile();
+      return {
+        warmthPercent: normalized.find((trait) => trait.key === "warmth").percent,
+        energyPercent: normalized.find((trait) => trait.key === "energy").percent,
+        summary: profile.summary,
+      };
+    })()`,
+    context,
+  );
+
+  assert.equal(result.warmthPercent, 67);
+  assert.equal(result.energyPercent, 33);
+  assert.equal(result.summary.length > 650, true);
+  assert.match(result.summary, /외모 취향 50%/);
+  assert.match(result.summary, /무조건 100%/);
 });
 
 test("deployable WebP portraits cover every trait, gender, and age combination", () => {
@@ -292,11 +369,15 @@ test("result screen omits visible photo information blocks", () => {
 test("question count is compact and non-wrapping", () => {
   const context = loadApp();
   const label = vm.runInContext("formatQuestionCount(2, 20)", context);
+  const markup = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
   const styles = fs.readFileSync(path.join(__dirname, "..", "styles.css"), "utf8");
 
   assert.equal(label, "2/20");
+  assert.match(markup, /data-mode="80"/);
+  assert.doesNotMatch(markup, /data-mode="100"/);
   assert.doesNotMatch(label, /\s/);
   assert.match(styles, /#questionCount\s*{[^}]*white-space:\s*nowrap;/s);
+  assert.match(styles, /#resultSummary\s*{[^}]*white-space:\s*pre-line;/s);
 });
 
 

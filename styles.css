@@ -663,6 +663,7 @@ strong,
   color: var(--muted);
   font-size: 1.02rem;
   line-height: 1.72;
+  white-space: pre-line;
 }
 
 .trait-list {
@@ -673,7 +674,7 @@ strong,
 
 .trait-chip {
   display: grid;
-  grid-template-columns: minmax(92px, 118px) minmax(0, 1fr) 38px;
+  grid-template-columns: minmax(92px, 118px) minmax(0, 1fr) 50px;
   align-items: center;
   gap: 10px;
   min-height: 36px;
