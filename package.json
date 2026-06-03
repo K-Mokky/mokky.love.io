@@ -4,7 +4,7 @@
   "private": true,
   "description": "내 이상형을 돌려도! by KMokky",
   "scripts": {
-    "check": "node --check app.js && node --check api/_utils.js && node --check api/health.js && node --check api/feedback.js",
+    "check": "node --check app.js && node --check api/_utils.js && node --check api/health.js && node --check api/feedback.js && node --check api/share.js",
     "test": "node --test tests/*.test.js",
     "local": "python3 -m http.server 5173",
     "preview": "vercel dev",

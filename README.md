@@ -14,8 +14,9 @@
 - 이상형 이미지 생성 전 성별(여성/남성)과 나이대(10대 후반/20대/30대/상관없음) 선택
 - 답변별 성향 점수 계산과 Top trait 기반 이상형 설명 생성
 - 브라우저 `canvas`로 가상의 사진 스타일 이상형 이미지 생성
-- 검사 답변 원문과 이미지를 서버/DB에 저장하지 않는 로컬 생성 구조
-- 생성된 사진만 공유하거나 사진+결과 정보 플랜카드로 공유
+- 검사 답변 원문과 결과 데이터는 서버/DB에 저장하지 않는 로컬 생성 구조
+- 생성된 사진만 공유하거나 사진+결과 정보 플랜카드로 공유 링크 생성
+- 공유 링크는 `/share` 미리보기 페이지에 Open Graph 이미지 태그를 넣어 SNS 링크 미리보기에 사용
 - 결과 만족도 설문 UI와 선택형 아쉬운 이유 입력
 - Vercel 정적 페이지 + Serverless Functions 배포 구성
 
@@ -26,7 +27,9 @@
 - `app.js`: 질문 뱅크, 성향 추론, 결과 UI, 사진 스타일 canvas 이미지와 공유 이미지 생성
 - `api/health.js`: 배포 상태 확인
 - `api/feedback.js`: 결과 만족도 설문 수신. 저장소 미연결 시 `stored=false`로 응답
+- `api/share.js`: 공유 이미지를 Supabase Storage에 올리고 `/share` Open Graph 미리보기 HTML 생성
 - `supabase/feedback.sql`: 설문 저장용 Supabase 테이블과 RLS insert 정책
+- `supabase/share-storage.sql`: 공유 이미지 저장용 Supabase Storage 버킷과 RLS 정책
 - `vercel.json`: Vercel 배포/함수 설정
 - `.env.example`: Vercel 환경변수 템플릿
 
@@ -56,9 +59,41 @@ npm run deploy
 
 - Build Command: 비워두거나 `npm run vercel-build`
 - Output Directory: 프로젝트 루트
-- Functions: `/api/health`, `/api/feedback`
+- Functions: `/api/health`, `/api/feedback`, `/api/share`
 
 배포 후 `https://<your-vercel-domain>/api/health`에서 `imageMode`가 `browser-canvas`인지 확인하면 됩니다.
+
+## 공유 링크 설정
+
+“나의 이상형 공유하기”, “내 이상형의 플랜카드 공유하기”, 인스타그램/페이스북 스토리 버튼은 PNG 파일을 직접 공유하는 대신 서버에서 공유 이미지를 만들고 `/share?...` 링크를 공유합니다.
+
+링크를 클릭하면 바로 테스트 메인으로 이동하지 않고, 먼저 공유 이미지가 보이는 전용 미리보기 페이지가 열립니다. 그 페이지의 `테스트하러 가기` 버튼을 누르면 앱 메인으로 이동합니다. 이 구조가 필요한 이유는 페이스북 같은 SNS 크롤러가 링크의 `og:image` 메타 태그를 읽어 미리보기 이미지를 만들기 때문입니다.
+
+Supabase Storage를 쓰려면 Supabase SQL Editor에서 `supabase/share-storage.sql`을 한 번 실행하고 Vercel 환경변수에 아래 값을 추가합니다.
+
+```text
+SUPABASE_SHARE_BUCKET=ideal-type-shares
+```
+
+현재 앱은 공유 이미지 업로드에도 기존 Supabase 연결 값을 재사용합니다.
+
+```text
+SUPABASE_URL=https://vvqpajzjkcqxpvsptqvr.supabase.co
+SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
+```
+
+`sb_publishable_...` 키를 쓸 경우 `supabase/share-storage.sql`의 public insert/read 정책이 필요합니다. 저장소가 아직 연결되지 않았거나 정책이 없으면 공유 링크 생성 대신 브라우저가 기존처럼 이미지 저장 fallback을 시도합니다.
+
+### 공유 이미지 확인/관리
+
+Supabase Dashboard에서 직접 볼 수 있습니다.
+
+1. Supabase 프로젝트 `vvqpajzjkcqxpvsptqvr` 열기
+2. 왼쪽 메뉴 `Storage` 선택
+3. `ideal-type-shares` 버킷 선택
+4. `shares/YYYYMMDD/` 폴더에서 생성된 공유 이미지 확인
+
+공유 이미지는 링크 미리보기를 위해 Storage에 저장됩니다. 반면 검사 답변 원문과 성향 결과 데이터는 공유 API에 저장하지 않습니다.
 
 ## 설문 저장소 설정
 

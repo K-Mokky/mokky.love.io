@@ -4,6 +4,7 @@ const test = require("node:test");
 
 const feedback = require("../api/feedback");
 const health = require("../api/health");
+const share = require("../api/share");
 
 test("health reports app identity and browser image mode", async () => {
   const res = createRes();
@@ -116,11 +117,111 @@ test("feedback only allows POST", async () => {
   assert.equal(res.headers.allow, "POST");
 });
 
-function createReq(method, body) {
+test("share preview page exposes Open Graph image and main-test CTA", async () => {
+  const res = createRes();
+  const imageUrl = "https://example.supabase.co/storage/v1/object/public/ideal-type-shares/shares/20260603/result.jpg";
+
+  await withShareEnvironment(
+    {
+      SUPABASE_URL: "https://example.supabase.co",
+    },
+    async () => {
+      await share(
+        createReq(
+          "GET",
+          null,
+          {
+            host: "love.mokky.store",
+            "x-forwarded-proto": "https",
+          },
+          `/share?img=${encodeURIComponent(imageUrl)}&title=${encodeURIComponent("내 이상형의 플랜카드")}&desc=${encodeURIComponent("결과를 확인해보세요.")}`,
+        ),
+        res,
+      );
+    },
+  );
+
+  const html = res.text();
+  assert.equal(res.statusCode, 200);
+  assert.equal(res.headers["content-type"], "text/html; charset=utf-8");
+  assert.match(html, /property="og:image"/);
+  assert.match(html, /meta name="twitter:card" content="summary_large_image"/);
+  assert.match(html, /내 이상형의 플랜카드/);
+  assert.match(html, /테스트하러 가기/);
+  assert.match(html, /href="https:\/\/love\.mokky\.store"/);
+  assert.match(html, new RegExp(escapeRegExp(imageUrl)));
+});
+
+test("share uploads generated image to Supabase storage and returns a share URL", async () => {
+  const res = createRes();
+  const calls = [];
+  const imageData = `data:image/jpeg;base64,${Buffer.from("share-image").toString("base64")}`;
+
+  await withShareEnvironment(
+    {
+      SUPABASE_URL: "https://example.supabase.co",
+      SUPABASE_PUBLISHABLE_KEY: "sb_publishable_test",
+      SUPABASE_SHARE_BUCKET: "ideal-type-shares",
+    },
+    async () => {
+      global.fetch = async (url, options) => {
+        calls.push({ url, options });
+        return { ok: true, text: async () => "" };
+      };
+
+      await share(
+        createReq(
+          "POST",
+          {
+            imageData,
+            title: "내 이상형",
+            description: "내 이상형 사진을 확인해보세요.",
+            kind: "portrait",
+          },
+          {
+            host: "love.mokky.store",
+            "x-forwarded-proto": "https",
+          },
+        ),
+        res,
+      );
+    },
+  );
+
+  const body = res.json();
+  assert.equal(res.statusCode, 200);
+  assert.equal(body.ok, true);
+  assert.equal(body.shareUrl.startsWith("https://love.mokky.store/share?"), true);
+  assert.equal(body.imageUrl.startsWith("https://example.supabase.co/storage/v1/object/public/ideal-type-shares/shares/"), true);
+  assert.equal(calls.length, 1);
+  assert.match(calls[0].url, /^https:\/\/example\.supabase\.co\/storage\/v1\/object\/ideal-type-shares\/shares\/\d{8}\/portrait-/);
+  assert.equal(calls[0].options.method, "POST");
+  assert.equal(calls[0].options.headers["Content-Type"], "image/jpeg");
+  assert.equal(calls[0].options.headers.apikey, "sb_publishable_test");
+  assert.equal(calls[0].options.headers.Authorization, undefined);
+  assert.equal(Buffer.isBuffer(calls[0].options.body), true);
+});
+
+test("share reports a clear fallback error without Supabase storage", async () => {
+  const res = createRes();
+  const imageData = `data:image/jpeg;base64,${Buffer.from("share-image").toString("base64")}`;
+
+  await withShareEnvironment({}, async () => {
+    await share(createReq("POST", { imageData, title: "내 이상형", kind: "portrait" }), res);
+  });
+
+  const body = res.json();
+  assert.equal(res.statusCode, 503);
+  assert.equal(body.ok, false);
+  assert.equal(body.code, "share_storage_unconfigured");
+});
+
+function createReq(method, body, headers = {}, url = "/api/test") {
   const raw = body ? JSON.stringify(body) : "";
   const req = Readable.from(raw ? [raw] : []);
   req.method = method;
-  req.headers = { "content-type": "application/json" };
+  req.url = url;
+  req.headers = { "content-type": "application/json", ...headers };
   return req;
 }
 
@@ -177,4 +278,37 @@ async function withFeedbackEnvironment(nextEnv, callback) {
     });
     global.fetch = previousFetch;
   }
+}
+
+async function withShareEnvironment(nextEnv, callback) {
+  const envKeys = [
+    "SUPABASE_URL",
+    "SUPABASE_SECRET_KEY",
+    "SUPABASE_SERVICE_ROLE_KEY",
+    "SUPABASE_PUBLISHABLE_KEY",
+    "SUPABASE_ANON_KEY",
+    "SUPABASE_SHARE_BUCKET",
+  ];
+  const previousEnv = Object.fromEntries(envKeys.map((key) => [key, process.env[key]]));
+  const previousFetch = global.fetch;
+
+  envKeys.forEach((key) => delete process.env[key]);
+  Object.assign(process.env, nextEnv);
+
+  try {
+    return await callback();
+  } finally {
+    Object.entries(previousEnv).forEach(([key, value]) => {
+      if (value === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = value;
+      }
+    });
+    global.fetch = previousFetch;
+  }
+}
+
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }

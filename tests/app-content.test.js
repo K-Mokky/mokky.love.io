@@ -459,7 +459,11 @@ test("story share options and placard copy are present", () => {
   assert.match(markup, /인스타그램 스토리/);
   assert.match(markup, /id="shareFacebookStoryButton"/);
   assert.match(markup, /페이스북 스토리/);
+  assert.match(markup, /공유 링크를 만든 뒤/);
   assert.match(source, /shareStoryImage/);
+  assert.match(source, /shareCanvasLink/);
+  assert.match(source, /fetch\("\/api\/share"/);
+  assert.match(source, /image\/jpeg/);
   assert.match(placardFunctionSource, /내 이상형의 플랜카드/);
   assert.match(placardFunctionSource, /이상형의 타입/);
   assert.match(placardFunctionSource, /성향별 충족도 · 각 성향 100점 기준/);

@@ -3368,11 +3368,12 @@ function downloadCanvas(canvas, filename) {
 }
 
 async function sharePortrait() {
-  await shareCanvasImage({
+  await shareCanvasLink({
     canvas: els.portraitCanvas,
-    filename: makePortraitFilename("my-ideal-type-photo"),
+    fallbackFilename: makePortraitFilename("my-ideal-type-photo"),
     title: "나의 이상형",
-    text: "나의 이상형 사진이에요.",
+    text: "내 이상형 사진을 확인하고 직접 테스트해보세요.",
+    kind: "portrait",
     button: els.sharePortraitButton,
   });
 }
@@ -3393,19 +3394,22 @@ async function shareStoryImage(target) {
   const config = targetMap[target];
   if (!config) return;
 
-  setStoryShareStatus(`${config.label} 스토리용 이미지를 준비하는 중이에요.`);
-  const outcome = await shareCanvasImage({
+  setStoryShareStatus(`${config.label}에 올릴 공유 링크를 준비하는 중이에요.`);
+  const outcome = await shareCanvasLink({
     canvas: els.portraitCanvas,
-    filename: config.filename,
+    fallbackFilename: config.filename,
     title: `${config.label} 스토리로 공유`,
-    text: "공유 시트에서 스토리를 선택해 올려주세요.",
+    text: "링크를 붙여넣으면 내 이상형 사진 미리보기가 표시될 수 있어요.",
+    kind: target,
     button: config.button,
   });
 
   if (outcome === "shared") {
-    setStoryShareStatus(`공유 시트에서 ${config.label} 스토리를 선택해 올려주세요.`);
+    setStoryShareStatus(`공유 시트에서 ${config.label}을 선택하거나 링크를 붙여넣어 주세요.`);
+  } else if (outcome === "copied") {
+    setStoryShareStatus(`${config.label}에 붙여넣을 공유 링크가 복사됐어요.`);
   } else if (outcome === "downloaded") {
-    setStoryShareStatus(`스토리용 이미지가 저장됐어요. ${config.label} 앱에서 스토리로 올려주세요.`);
+    setStoryShareStatus(`링크 생성에 실패해 이미지가 저장됐어요. ${config.label} 앱에서 직접 올려주세요.`);
   } else {
     setStoryShareStatus("스토리 공유가 취소됐어요.");
   }
@@ -3426,13 +3430,100 @@ function makePortraitFilename(prefix) {
 
 async function sharePlacard() {
   const placardCanvas = createPlacardCanvas(buildProfile());
-  await shareCanvasImage({
+  await shareCanvasLink({
     canvas: placardCanvas,
-    filename: "my-ideal-type-placard.png",
+    fallbackFilename: "my-ideal-type-placard.png",
     title: "내 이상형의 플랜카드",
-    text: "나의 이상형 사진과 결과 정보예요.",
+    text: "나의 이상형 사진과 결과 정보를 확인하고 직접 테스트해보세요.",
+    kind: "placard",
     button: els.sharePlacardButton,
   });
+}
+
+async function shareCanvasLink({ canvas, fallbackFilename, title, text, kind, button }) {
+  const originalText = button.textContent;
+  let outcome = "aborted";
+  button.disabled = true;
+  button.textContent = "링크 생성 중";
+
+  try {
+    const blob = await canvasToBlob(canvas, "image/jpeg", 0.9);
+    const share = await createShareLink({ blob, title, text, kind });
+
+    if (navigator.share) {
+      await navigator.share({ title, text, url: share.shareUrl });
+      button.textContent = "공유 완료";
+      outcome = "shared";
+    } else if (await copyShareLink(share.shareUrl)) {
+      button.textContent = "링크 복사됨";
+      outcome = "copied";
+    } else {
+      promptShareLink(share.shareUrl);
+      button.textContent = "링크 준비됨";
+      outcome = "copied";
+    }
+  } catch (error) {
+    if (error?.name !== "AbortError") {
+      console.warn("Link share fell back to image download:", error);
+      downloadCanvas(canvas, fallbackFilename);
+      button.textContent = "이미지 저장됨";
+      outcome = "downloaded";
+    }
+  } finally {
+    setTimeout(() => {
+      button.disabled = false;
+      button.textContent = originalText;
+    }, 1200);
+  }
+
+  return outcome;
+}
+
+async function createShareLink({ blob, title, text, kind }) {
+  const imageData = await blobToDataUrl(blob);
+  const response = await fetch("/api/share", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      imageData,
+      imageType: blob.type || "image/jpeg",
+      title,
+      description: text,
+      kind,
+    }),
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok || !result.ok || !result.shareUrl) {
+    throw new Error(result.message || "공유 링크를 만들 수 없어요.");
+  }
+  return result;
+}
+
+function blobToDataUrl(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.addEventListener("load", () => resolve(String(reader.result || "")));
+    reader.addEventListener("error", () => reject(new Error("공유 이미지를 읽을 수 없어요.")));
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function copyShareLink(shareUrl) {
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(shareUrl);
+      return true;
+    }
+  } catch (error) {
+    console.warn("Share link copy failed:", error);
+  }
+  return false;
+}
+
+function promptShareLink(shareUrl) {
+  if (typeof window !== "undefined" && typeof window.prompt === "function") {
+    window.prompt("공유 링크를 복사해 주세요.", shareUrl);
+  }
 }
 
 async function shareCanvasImage({ canvas, filename, title, text, button }) {
@@ -3471,7 +3562,7 @@ async function shareCanvasImage({ canvas, filename, title, text, button }) {
   return outcome;
 }
 
-function canvasToBlob(canvas) {
+function canvasToBlob(canvas, type = "image/png", quality) {
   return new Promise((resolve, reject) => {
     canvas.toBlob((blob) => {
       if (blob) {
@@ -3479,7 +3570,7 @@ function canvasToBlob(canvas) {
         return;
       }
       reject(new Error("공유 이미지를 만들 수 없어요."));
-    }, "image/png");
+    }, type, quality);
   });
 }
 
