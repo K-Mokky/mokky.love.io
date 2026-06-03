@@ -448,22 +448,30 @@ test("feedback survey is visible on result screen but excluded from placard canv
   assert.doesNotMatch(placardFunctionSource, /feedback|설문|만족|아쉬웠던 이유|결과가 마음에 드시나요/);
 });
 
-test("story share options and placard copy are present", () => {
+test("result actions separate PNG saving from SNS link sharing", () => {
   const markup = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
   const source = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
   const context = loadApp();
   const placardFunctionSource = vm.runInContext("createPlacardCanvas.toString()", context);
   const placardLayoutSource = vm.runInContext("measurePlacardLayout.toString()", context);
 
-  assert.match(markup, /id="shareInstagramStoryButton"/);
-  assert.match(markup, /인스타그램 스토리/);
-  assert.match(markup, /id="shareFacebookStoryButton"/);
-  assert.match(markup, /페이스북 스토리/);
-  assert.match(markup, /공유 링크를 만든 뒤/);
-  assert.match(source, /shareStoryImage/);
+  assert.match(markup, /id="restartButton"[^>]*>다시 테스트하러 가기</);
+  assert.doesNotMatch(markup, /id="downloadButton"|>이미지 저장<|>다시 돌리기</);
+  assert.match(markup, /나의 이상형 저장하기/);
+  assert.match(markup, /내 이상형의 플랜카드 저장하기/);
+  assert.match(markup, /SNS에 공유하고 싶다면, 아래 버튼을 눌러 공유 링크를 생성하여 주세요!/);
+  assert.match(markup, /id="sharePortraitLinkButton"[^>]*>나의 이상형 공유하기</);
+  assert.match(markup, /id="sharePlacardLinkButton"[^>]*>내 이상형의 플랜카드 공유하기</);
+  assert.doesNotMatch(markup, /인스타그램 스토리|페이스북 스토리|shareInstagramStoryButton|shareFacebookStoryButton/);
+  assert.match(source, /savePortrait/);
+  assert.match(source, /savePlacard/);
+  assert.match(source, /sharePortraitLink/);
+  assert.match(source, /sharePlacardLink/);
   assert.match(source, /shareCanvasLink/);
   assert.match(source, /fetch\("\/api\/share"/);
   assert.match(source, /image\/jpeg/);
+  assert.match(source, /toDataURL\("image\/png"\)/);
+  assert.doesNotMatch(source, /shareStoryImage|shareInstagramStoryButton|shareFacebookStoryButton/);
   assert.match(placardFunctionSource, /내 이상형의 플랜카드/);
   assert.match(placardFunctionSource, /이상형의 타입/);
   assert.match(placardFunctionSource, /성향별 충족도 · 각 성향 100점 기준/);

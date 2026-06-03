@@ -1863,11 +1863,10 @@ const els = {
   startNoticeModal: document.querySelector("#startNoticeModal"),
   startNoticeYesButton: document.querySelector("#startNoticeYesButton"),
   startNoticeNoButton: document.querySelector("#startNoticeNoButton"),
-  downloadButton: document.querySelector("#downloadButton"),
   sharePortraitButton: document.querySelector("#sharePortraitButton"),
   sharePlacardButton: document.querySelector("#sharePlacardButton"),
-  shareInstagramStoryButton: document.querySelector("#shareInstagramStoryButton"),
-  shareFacebookStoryButton: document.querySelector("#shareFacebookStoryButton"),
+  sharePortraitLinkButton: document.querySelector("#sharePortraitLinkButton"),
+  sharePlacardLinkButton: document.querySelector("#sharePlacardLinkButton"),
   storyShareStatus: document.querySelector("#storyShareStatus"),
   feedbackButtons: [...document.querySelectorAll("[data-feedback-choice]")],
   feedbackStatus: document.querySelector("#feedbackStatus"),
@@ -3261,11 +3260,10 @@ function setImageStatus(status, customMessage) {
 
 function setPortraitActionsDisabled(disabled) {
   [
-    els.downloadButton,
     els.sharePortraitButton,
     els.sharePlacardButton,
-    els.shareInstagramStoryButton,
-    els.shareFacebookStoryButton,
+    els.sharePortraitLinkButton,
+    els.sharePlacardLinkButton,
   ].forEach((button) => {
     if (button) {
       button.disabled = disabled;
@@ -3356,10 +3354,6 @@ function generateRandomSample() {
   showResult();
 }
 
-function downloadPortrait() {
-  downloadCanvas(els.portraitCanvas, makePortraitFilename("ideal-type"));
-}
-
 function downloadCanvas(canvas, filename) {
   const link = document.createElement("a");
   link.download = filename;
@@ -3367,51 +3361,70 @@ function downloadCanvas(canvas, filename) {
   link.click();
 }
 
-async function sharePortrait() {
-  await shareCanvasLink({
+function savePortrait() {
+  saveCanvasImage({
+    canvas: els.portraitCanvas,
+    filename: makePortraitFilename("my-ideal-type"),
+    button: els.sharePortraitButton,
+  });
+}
+
+function savePlacard() {
+  saveCanvasImage({
+    canvas: createPlacardCanvas(buildProfile()),
+    filename: "my-ideal-type-placard.png",
+    button: els.sharePlacardButton,
+  });
+}
+
+function saveCanvasImage({ canvas, filename, button }) {
+  const originalText = button.textContent;
+  button.disabled = true;
+  downloadCanvas(canvas, filename);
+  button.textContent = "PNG 저장됨";
+
+  setTimeout(() => {
+    button.disabled = false;
+    button.textContent = originalText;
+  }, 1200);
+}
+
+async function sharePortraitLink() {
+  await shareResultLink({
     canvas: els.portraitCanvas,
     fallbackFilename: makePortraitFilename("my-ideal-type-photo"),
     title: "나의 이상형",
     text: "내 이상형 사진을 확인하고 직접 테스트해보세요.",
     kind: "portrait",
-    button: els.sharePortraitButton,
+    label: "나의 이상형",
+    button: els.sharePortraitLinkButton,
   });
 }
 
-async function shareStoryImage(target) {
-  const targetMap = {
-    instagram: {
-      label: "인스타그램",
-      button: els.shareInstagramStoryButton,
-      filename: makePortraitFilename("instagram-story-ideal-type"),
-    },
-    facebook: {
-      label: "페이스북",
-      button: els.shareFacebookStoryButton,
-      filename: makePortraitFilename("facebook-story-ideal-type"),
-    },
-  };
-  const config = targetMap[target];
-  if (!config) return;
-
-  setStoryShareStatus(`${config.label}에 올릴 공유 링크를 준비하는 중이에요.`);
-  const outcome = await shareCanvasLink({
-    canvas: els.portraitCanvas,
-    fallbackFilename: config.filename,
-    title: `${config.label} 스토리로 공유`,
-    text: "링크를 붙여넣으면 내 이상형 사진 미리보기가 표시될 수 있어요.",
-    kind: target,
-    button: config.button,
+async function sharePlacardLink() {
+  await shareResultLink({
+    canvas: createPlacardCanvas(buildProfile()),
+    fallbackFilename: "my-ideal-type-placard.png",
+    title: "내 이상형의 플랜카드",
+    text: "나의 이상형 사진과 결과 정보를 확인하고 직접 테스트해보세요.",
+    kind: "placard",
+    label: "내 이상형의 플랜카드",
+    button: els.sharePlacardLinkButton,
   });
+}
+
+async function shareResultLink(config) {
+  setStoryShareStatus(`${config.label} 공유 링크를 생성하는 중이에요.`);
+  const outcome = await shareCanvasLink(config);
 
   if (outcome === "shared") {
-    setStoryShareStatus(`공유 시트에서 ${config.label}을 선택하거나 링크를 붙여넣어 주세요.`);
+    setStoryShareStatus("공유 시트가 열렸어요. 인스타그램/페이스북이 보이지 않으면 링크를 복사해 앱에 붙여넣어 주세요.");
   } else if (outcome === "copied") {
-    setStoryShareStatus(`${config.label}에 붙여넣을 공유 링크가 복사됐어요.`);
+    setStoryShareStatus(`${config.label} 공유 링크가 복사됐어요. 원하는 SNS 앱에 붙여넣어 주세요.`);
   } else if (outcome === "downloaded") {
-    setStoryShareStatus(`링크 생성에 실패해 이미지가 저장됐어요. ${config.label} 앱에서 직접 올려주세요.`);
+    setStoryShareStatus("공유 링크 생성에 실패해 PNG 파일로 저장했어요. 잠시 뒤 다시 시도해 주세요.");
   } else {
-    setStoryShareStatus("스토리 공유가 취소됐어요.");
+    setStoryShareStatus("공유가 취소됐어요.");
   }
 }
 
@@ -3428,18 +3441,6 @@ function makePortraitFilename(prefix) {
   return `${prefix}-${selected.trait}-${selected.gender}-${selected.ageRange}-${selected.variantName}.png`;
 }
 
-async function sharePlacard() {
-  const placardCanvas = createPlacardCanvas(buildProfile());
-  await shareCanvasLink({
-    canvas: placardCanvas,
-    fallbackFilename: "my-ideal-type-placard.png",
-    title: "내 이상형의 플랜카드",
-    text: "나의 이상형 사진과 결과 정보를 확인하고 직접 테스트해보세요.",
-    kind: "placard",
-    button: els.sharePlacardButton,
-  });
-}
-
 async function shareCanvasLink({ canvas, fallbackFilename, title, text, kind, button }) {
   const originalText = button.textContent;
   let outcome = "aborted";
@@ -3451,9 +3452,23 @@ async function shareCanvasLink({ canvas, fallbackFilename, title, text, kind, bu
     const share = await createShareLink({ blob, title, text, kind });
 
     if (navigator.share) {
-      await navigator.share({ title, text, url: share.shareUrl });
-      button.textContent = "공유 완료";
-      outcome = "shared";
+      try {
+        await navigator.share({ title, text, url: share.shareUrl });
+        button.textContent = "공유 완료";
+        outcome = "shared";
+      } catch (shareError) {
+        if (shareError?.name !== "AbortError") {
+          console.warn("Native share sheet did not complete; falling back to copied link:", shareError);
+        }
+        if (await copyShareLink(share.shareUrl)) {
+          button.textContent = "링크 복사됨";
+          outcome = "copied";
+        } else {
+          promptShareLink(share.shareUrl);
+          button.textContent = "링크 준비됨";
+          outcome = "copied";
+        }
+      }
     } else if (await copyShareLink(share.shareUrl)) {
       button.textContent = "링크 복사됨";
       outcome = "copied";
@@ -3524,42 +3539,6 @@ function promptShareLink(shareUrl) {
   if (typeof window !== "undefined" && typeof window.prompt === "function") {
     window.prompt("공유 링크를 복사해 주세요.", shareUrl);
   }
-}
-
-async function shareCanvasImage({ canvas, filename, title, text, button }) {
-  const originalText = button.textContent;
-  let outcome = "aborted";
-  button.disabled = true;
-  button.textContent = "공유 준비 중";
-
-  try {
-    const blob = await canvasToBlob(canvas);
-    const file = new File([blob], filename, { type: blob.type || "image/png" });
-
-    if (navigator.canShare?.({ files: [file] })) {
-      await navigator.share({ files: [file], title, text });
-      button.textContent = "공유 완료";
-      outcome = "shared";
-    } else {
-      downloadCanvas(canvas, filename);
-      button.textContent = "이미지 저장됨";
-      outcome = "downloaded";
-    }
-  } catch (error) {
-    if (error?.name !== "AbortError") {
-      console.warn("Image share fell back to download:", error);
-      downloadCanvas(canvas, filename);
-      button.textContent = "이미지 저장됨";
-      outcome = "downloaded";
-    }
-  } finally {
-    setTimeout(() => {
-      button.disabled = false;
-      button.textContent = originalText;
-    }, 1200);
-  }
-
-  return outcome;
 }
 
 function canvasToBlob(canvas, type = "image/png", quality) {
@@ -3763,11 +3742,10 @@ els.startNoticeYesButton.addEventListener("click", confirmStartNotice);
 els.startNoticeNoButton.addEventListener("click", cancelStartNotice);
 els.backButton.addEventListener("click", goBack);
 els.resetButton.addEventListener("click", clearCurrentAnswer);
-els.downloadButton.addEventListener("click", downloadPortrait);
-els.sharePortraitButton.addEventListener("click", sharePortrait);
-els.sharePlacardButton.addEventListener("click", sharePlacard);
-els.shareInstagramStoryButton.addEventListener("click", () => shareStoryImage("instagram"));
-els.shareFacebookStoryButton.addEventListener("click", () => shareStoryImage("facebook"));
+els.sharePortraitButton.addEventListener("click", savePortrait);
+els.sharePlacardButton.addEventListener("click", savePlacard);
+els.sharePortraitLinkButton.addEventListener("click", sharePortraitLink);
+els.sharePlacardLinkButton.addEventListener("click", sharePlacardLink);
 els.feedbackButtons.forEach((button) => {
   button.addEventListener("click", () => handleFeedbackChoice(button.dataset.feedbackChoice));
 });
