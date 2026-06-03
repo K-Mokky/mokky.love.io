@@ -26,6 +26,7 @@
 - `app.js`: 질문 뱅크, 성향 추론, 결과 UI, 사진 스타일 canvas 이미지와 공유 이미지 생성
 - `api/health.js`: 배포 상태 확인
 - `api/feedback.js`: 결과 만족도 설문 수신. 저장소 미연결 시 `stored=false`로 응답
+- `supabase/feedback.sql`: 설문 저장용 Supabase 테이블과 RLS insert 정책
 - `vercel.json`: Vercel 배포/함수 설정
 - `.env.example`: Vercel 환경변수 템플릿
 
@@ -66,7 +67,22 @@ npm run deploy
 지원 방식은 두 가지입니다.
 
 1. `FEEDBACK_WEBHOOK_URL`: 설문 payload를 외부 webhook으로 전달
-2. `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY`: Supabase REST API로 저장
+2. `SUPABASE_URL` + Supabase API key: Supabase REST API로 저장
+
+이 프로젝트의 Supabase URL:
+
+```text
+SUPABASE_URL=https://vvqpajzjkcqxpvsptqvr.supabase.co
+```
+
+Supabase key는 아래 중 하나를 Vercel 환경변수로 설정하면 됩니다.
+
+- `SUPABASE_PUBLISHABLE_KEY`: 공개 가능한 낮은 권한 키. RLS `insert` 정책이 필요합니다.
+- `SUPABASE_SECRET_KEY`: 서버 전용 최신 secret key. 브라우저/저장소에 노출하면 안 됩니다.
+- `SUPABASE_SERVICE_ROLE_KEY`: 서버 전용 legacy service role key. 브라우저/저장소에 노출하면 안 됩니다.
+- `SUPABASE_ANON_KEY`: legacy anon key. RLS `insert` 정책이 필요합니다.
+
+제공받은 `sb_publishable_...` 키를 쓸 경우 Supabase SQL Editor에서 `supabase/feedback.sql`을 실행해 테이블과 public insert 정책을 먼저 만들어야 합니다.
 
 Supabase를 쓸 경우 기본 테이블 이름은 `ideal_type_feedback`입니다.
 
@@ -86,7 +102,7 @@ create table public.ideal_type_feedback (
 );
 ```
 
-서버 함수에서 service role key를 사용하므로 이 키는 브라우저에 노출하지 말고 Vercel 환경변수에만 저장해야 합니다.
+전체 SQL은 `supabase/feedback.sql`에 들어 있습니다. `publishable` 키는 공개 가능한 키지만, 사용자 응답 조회 권한까지 열리지 않도록 `select/update/delete` 정책은 만들지 않았습니다.
 
 ## 검증
 

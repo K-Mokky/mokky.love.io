@@ -53,6 +53,49 @@ test("feedback accepts disliked survey without a reason", async () => {
   assert.equal(body.stored, false);
 });
 
+test("feedback stores through Supabase publishable key without bearer auth", async () => {
+  const res = createRes();
+  const calls = [];
+
+  await withFeedbackEnvironment(
+    {
+      SUPABASE_URL: "https://example.supabase.co",
+      SUPABASE_PUBLISHABLE_KEY: "sb_publishable_test",
+    },
+    async () => {
+      global.fetch = async (url, options) => {
+        calls.push({ url, options });
+        return { ok: true };
+      };
+
+      await feedback(
+        createReq("POST", {
+          satisfaction: "disliked",
+          reason: "",
+          mode: 50,
+          targetGender: "man",
+          targetAgeRange: "30s",
+          resultTitle: "테스트 결과",
+          topTraits: [{ key: "clarity", label: "명확함", percent: 101 }],
+        }),
+        res,
+      );
+    },
+  );
+
+  const body = res.json();
+  const inserted = JSON.parse(calls[0].options.body);
+  assert.equal(res.statusCode, 200);
+  assert.equal(body.ok, true);
+  assert.equal(body.stored, true);
+  assert.equal(body.destination, "supabase");
+  assert.equal(calls[0].url, "https://example.supabase.co/rest/v1/ideal_type_feedback");
+  assert.equal(calls[0].options.headers.apikey, "sb_publishable_test");
+  assert.equal(calls[0].options.headers.Authorization, undefined);
+  assert.equal(inserted.reason, null);
+  assert.deepEqual(inserted.top_traits, [{ key: "clarity", label: "명확함", percent: 100 }]);
+});
+
 test("feedback rejects invalid satisfaction values", async () => {
   const res = createRes();
   await feedback(createReq("POST", { satisfaction: "maybe" }), res);
@@ -103,24 +146,35 @@ function createRes() {
 }
 
 async function withNoFeedbackStorage(callback) {
-  const previous = {
-    FEEDBACK_WEBHOOK_URL: process.env.FEEDBACK_WEBHOOK_URL,
-    SUPABASE_URL: process.env.SUPABASE_URL,
-    SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
-  };
-  delete process.env.FEEDBACK_WEBHOOK_URL;
-  delete process.env.SUPABASE_URL;
-  delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+  return withFeedbackEnvironment({}, callback);
+}
+
+async function withFeedbackEnvironment(nextEnv, callback) {
+  const envKeys = [
+    "FEEDBACK_WEBHOOK_URL",
+    "SUPABASE_URL",
+    "SUPABASE_SECRET_KEY",
+    "SUPABASE_SERVICE_ROLE_KEY",
+    "SUPABASE_PUBLISHABLE_KEY",
+    "SUPABASE_ANON_KEY",
+    "SUPABASE_FEEDBACK_TABLE",
+  ];
+  const previousEnv = Object.fromEntries(envKeys.map((key) => [key, process.env[key]]));
+  const previousFetch = global.fetch;
+
+  envKeys.forEach((key) => delete process.env[key]);
+  Object.assign(process.env, nextEnv);
 
   try {
     return await callback();
   } finally {
-    Object.entries(previous).forEach(([key, value]) => {
+    Object.entries(previousEnv).forEach(([key, value]) => {
       if (value === undefined) {
         delete process.env[key];
       } else {
         process.env[key] = value;
       }
     });
+    global.fetch = previousFetch;
   }
 }

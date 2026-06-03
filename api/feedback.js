@@ -8,6 +8,12 @@ const {
 
 const VALID_SATISFACTIONS = new Set(["liked", "disliked"]);
 const DEFAULT_FEEDBACK_TABLE = "ideal_type_feedback";
+const SUPABASE_KEY_NAMES = [
+  "SUPABASE_SECRET_KEY",
+  "SUPABASE_SERVICE_ROLE_KEY",
+  "SUPABASE_PUBLISHABLE_KEY",
+  "SUPABASE_ANON_KEY",
+];
 
 module.exports = async function feedback(req, res) {
   if (req.method !== "POST") {
@@ -92,7 +98,7 @@ async function storeFeedback(payload) {
     return { stored: true, destination: "webhook" };
   }
 
-  if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  if (process.env.SUPABASE_URL && getSupabaseApiKey()) {
     await insertSupabaseFeedback(payload);
     return { stored: true, destination: "supabase" };
   }
@@ -114,14 +120,10 @@ async function postWebhook(payload) {
 async function insertSupabaseFeedback(payload) {
   const baseUrl = process.env.SUPABASE_URL.replace(/\/+$/, "");
   const table = cleanString(process.env.SUPABASE_FEEDBACK_TABLE, 80) || DEFAULT_FEEDBACK_TABLE;
+  const apiKey = getSupabaseApiKey();
   const response = await fetch(`${baseUrl}/rest/v1/${encodeURIComponent(table)}`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Prefer: "return=minimal",
-      apikey: process.env.SUPABASE_SERVICE_ROLE_KEY,
-      Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
-    },
+    headers: buildSupabaseHeaders(apiKey),
     body: JSON.stringify({
       satisfaction: payload.satisfaction,
       reason: payload.reason || null,
@@ -138,4 +140,22 @@ async function insertSupabaseFeedback(payload) {
     const message = await response.text().catch(() => "");
     throw new Error(`Supabase feedback insert failed: ${response.status} ${message}`.trim());
   }
+}
+
+function getSupabaseApiKey() {
+  return SUPABASE_KEY_NAMES.map((name) => cleanString(process.env[name], 500)).find(Boolean) || "";
+}
+
+function buildSupabaseHeaders(apiKey) {
+  const headers = {
+    "Content-Type": "application/json",
+    Prefer: "return=minimal",
+    apikey: apiKey,
+  };
+
+  if (!apiKey.startsWith("sb_")) {
+    headers.Authorization = `Bearer ${apiKey}`;
+  }
+
+  return headers;
 }
