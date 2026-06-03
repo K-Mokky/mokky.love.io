@@ -603,7 +603,8 @@ strong,
   line-height: 1.45;
 }
 
-.feedback-modal {
+.feedback-modal,
+.notice-modal {
   position: fixed;
   inset: 0;
   z-index: 20;
@@ -614,7 +615,8 @@ strong,
   backdrop-filter: blur(8px);
 }
 
-.feedback-modal-card {
+.feedback-modal-card,
+.notice-modal-card {
   position: relative;
   width: min(100%, 520px);
   padding: 24px;
@@ -624,19 +626,30 @@ strong,
   box-shadow: 0 24px 72px rgba(36, 33, 43, 0.24);
 }
 
+.notice-modal-card {
+  text-align: center;
+}
+
 .feedback-close-button {
   position: absolute;
   right: 14px;
   top: 14px;
 }
 
-.feedback-modal-card h2 {
+.feedback-modal-card h2,
+.notice-modal-card h2 {
   margin: 6px 44px 8px 0;
   color: var(--ink);
   font-size: clamp(1.35rem, 4vw, 2rem);
 }
 
-.feedback-modal-card p:not(.eyebrow) {
+.notice-modal-card h2 {
+  margin-right: 0;
+  word-break: keep-all;
+}
+
+.feedback-modal-card p:not(.eyebrow),
+.notice-modal-card p:not(.eyebrow) {
   margin: 0 0 16px;
   color: var(--muted);
   font-weight: 700;
@@ -670,12 +683,17 @@ strong,
   border-color: rgba(255, 79, 155, 0.56);
 }
 
-.feedback-modal-actions {
+.feedback-modal-actions,
+.notice-modal-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
   justify-content: flex-end;
   margin-top: 16px;
+}
+
+.notice-modal-actions {
+  justify-content: center;
 }
 
 .primary-button,

@@ -453,6 +453,7 @@ test("story share options and placard copy are present", () => {
   const source = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
   const context = loadApp();
   const placardFunctionSource = vm.runInContext("createPlacardCanvas.toString()", context);
+  const placardLayoutSource = vm.runInContext("measurePlacardLayout.toString()", context);
 
   assert.match(markup, /id="shareInstagramStoryButton"/);
   assert.match(markup, /인스타그램 스토리/);
@@ -462,6 +463,23 @@ test("story share options and placard copy are present", () => {
   assert.match(placardFunctionSource, /내 이상형의 플랜카드/);
   assert.match(placardFunctionSource, /이상형의 타입/);
   assert.match(placardFunctionSource, /성향별 충족도 · 각 성향 100점 기준/);
+  assert.match(placardFunctionSource, /measurePlacardLayout/);
+  assert.match(placardLayoutSource, /height:\s*Math\.ceil/);
+  assert.doesNotMatch(placardFunctionSource, /canvas\.height\s*=\s*2200/);
+  assert.doesNotMatch(placardFunctionSource, /검사 결과는 어디에도 저장되지 않습니다/);
+});
+
+test("start notice blocks the quiz until the user confirms", () => {
+  const markup = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
+  const source = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+
+  assert.match(markup, /id="startNoticeModal"/);
+  assert.match(markup, /결과로 나오는 이상형의 사진은 실존하지 않으니 유의하세요!/);
+  assert.match(markup, /id="startNoticeYesButton"[^>]*>네</);
+  assert.match(markup, /id="startNoticeNoButton"[^>]*>아니요</);
+  assert.match(source, /function startQuiz\(\)\s*{\s*openStartNotice\(beginQuiz\)/s);
+  assert.match(source, /function confirmStartNotice/);
+  assert.match(source, /function cancelStartNotice/);
 });
 
 test("question count is compact and non-wrapping", () => {

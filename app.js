@@ -1824,6 +1824,7 @@ const state = {
   feedbackSubmitting: false,
   feedbackSubmitted: false,
   seenQuestionIds: loadSeenQuestionIds(),
+  pendingNoticeAction: null,
 };
 
 const portraitAssets = {
@@ -1859,6 +1860,9 @@ const els = {
   traitList: document.querySelector("#traitList"),
   imageStatus: document.querySelector("#imageStatus"),
   portraitCanvas: document.querySelector("#portraitCanvas"),
+  startNoticeModal: document.querySelector("#startNoticeModal"),
+  startNoticeYesButton: document.querySelector("#startNoticeYesButton"),
+  startNoticeNoButton: document.querySelector("#startNoticeNoButton"),
   downloadButton: document.querySelector("#downloadButton"),
   sharePortraitButton: document.querySelector("#sharePortraitButton"),
   sharePlacardButton: document.querySelector("#sharePlacardButton"),
@@ -2031,6 +2035,37 @@ function setPreference(preference, value) {
 }
 
 function startQuiz() {
+  openStartNotice(beginQuiz);
+}
+
+function openStartNotice(action) {
+  state.pendingNoticeAction = action;
+  els.startNoticeModal.classList.remove("hidden");
+  setTimeout(() => els.startNoticeYesButton.focus?.(), 0);
+}
+
+function closeStartNotice() {
+  els.startNoticeModal.classList.add("hidden");
+}
+
+function confirmStartNotice() {
+  const action = state.pendingNoticeAction;
+  state.pendingNoticeAction = null;
+  closeStartNotice();
+  if (typeof action === "function") {
+    action();
+  }
+}
+
+function cancelStartNotice() {
+  state.pendingNoticeAction = null;
+  closeStartNotice();
+  state.started = false;
+  showScreen("start");
+  renderProgress();
+}
+
+function beginQuiz() {
   prepareQuestionRun();
   rememberCurrentQuestionOrder();
   state.answers = [];
@@ -3304,6 +3339,10 @@ function particle(text, consonantParticle, vowelParticle) {
 }
 
 function randomSample() {
+  openStartNotice(generateRandomSample);
+}
+
+function generateRandomSample() {
   prepareQuestionRun();
   rememberCurrentQuestionOrder();
   state.answers = activeQuestions().map((_, index) => {
@@ -3447,9 +3486,11 @@ function canvasToBlob(canvas) {
 function createPlacardCanvas(profile) {
   const canvas = document.createElement("canvas");
   canvas.width = 1200;
-  canvas.height = 2200;
-  const ctx = canvas.getContext("2d");
   const width = canvas.width;
+  const measureCtx = canvas.getContext("2d");
+  const layout = measurePlacardLayout(measureCtx, profile, width);
+  canvas.height = layout.height;
+  const ctx = canvas.getContext("2d");
   const height = canvas.height;
   const primary = traitMeta[profile.top[0].key].color;
   const secondary = traitMeta[profile.top[1].key].color;
@@ -3478,43 +3519,36 @@ function createPlacardCanvas(profile) {
   ctx.font = "800 24px system-ui, sans-serif";
   ctx.fillText(getPreferenceSummary(), 94, 164);
 
-  const photoX = 250;
-  const photoY = 205;
-  const photoW = 700;
-  const photoH = Math.round(photoW * (els.portraitCanvas.height / els.portraitCanvas.width));
   ctx.save();
-  roundedRect(ctx, photoX, photoY, photoW, photoH, 26);
+  roundedRect(ctx, layout.photoX, layout.photoY, layout.photoW, layout.photoH, 26);
   ctx.clip();
-  ctx.drawImage(els.portraitCanvas, photoX, photoY, photoW, photoH);
+  ctx.drawImage(els.portraitCanvas, layout.photoX, layout.photoY, layout.photoW, layout.photoH);
   ctx.restore();
   ctx.strokeStyle = "rgba(36,33,43,0.12)";
   ctx.lineWidth = 2;
-  roundedRect(ctx, photoX, photoY, photoW, photoH, 26);
+  roundedRect(ctx, layout.photoX, layout.photoY, layout.photoW, layout.photoH, 26);
   ctx.stroke();
 
-  let y = photoY + photoH + 72;
   ctx.fillStyle = "rgba(217,43,120,0.92)";
   ctx.font = "900 25px system-ui, sans-serif";
-  ctx.fillText("이상형의 타입", 94, y);
-  y += 44;
+  ctx.fillText("이상형의 타입", layout.sectionX, layout.typeLabelY);
 
   ctx.fillStyle = "#24212b";
   ctx.font = "900 44px system-ui, sans-serif";
-  y = drawWrappedText(ctx, profile.title, 94, y, width - 188, 54, 2) + 30;
+  drawWrappedText(ctx, profile.title, layout.sectionX, layout.titleY, layout.textW, 54, 2);
 
   ctx.fillStyle = "rgba(36,33,43,0.72)";
   ctx.font = "700 29px system-ui, sans-serif";
-  y = drawWrappedText(ctx, profile.summary, 94, y, width - 188, 42, 5) + 38;
+  drawWrappedText(ctx, profile.summary, layout.sectionX, layout.summaryY, layout.textW, 42, 5);
 
   ctx.fillStyle = "rgba(217,43,120,0.92)";
   ctx.font = "900 25px system-ui, sans-serif";
-  ctx.fillText("성향별 충족도 · 각 성향 100점 기준", 94, y);
-  y += 38;
+  ctx.fillText("성향별 충족도 · 각 성향 100점 기준", layout.sectionX, layout.traitsLabelY);
 
-  const traits = getNormalizedTraits(profile.scores, profile.scoreMaximums).slice(0, 5);
+  const traits = layout.traits;
   traits.forEach((trait, index) => {
-    const x = 94 + (index % 2) * 506;
-    const rowY = y + Math.floor(index / 2) * 64;
+    const x = layout.sectionX + (index % 2) * 506;
+    const rowY = layout.traitsY + Math.floor(index / 2) * 64;
     const chipW = index === 4 ? 492 : 470;
     ctx.fillStyle = index % 2 === 0 ? "rgba(255,79,155,0.1)" : "rgba(33,183,168,0.1)";
     roundedRect(ctx, x, rowY, chipW, 48, 24);
@@ -3527,20 +3561,51 @@ function createPlacardCanvas(profile) {
     ctx.fillText(`${trait.percent}%`, x + chipW - 22, rowY + 31);
     ctx.textAlign = "left";
   });
-  y += Math.ceil(traits.length / 2) * 64 + 20;
-
-  const noteText = "검사 결과는 어디에도 저장되지 않습니다.";
-  ctx.font = "800 22px system-ui, sans-serif";
-  const noteTextHeight = getWrappedTextHeight(ctx, noteText, width - 240, 28, 2);
-  const noteH = noteTextHeight + 48;
-  const noteY = Math.min(y + 28, height - noteH - 86);
-  ctx.fillStyle = "rgba(33,183,168,0.1)";
-  roundedRect(ctx, 94, noteY, width - 188, noteH, 18);
-  ctx.fill();
-  ctx.fillStyle = "rgba(36,33,43,0.62)";
-  drawWrappedText(ctx, noteText, 120, noteY + 34, width - 240, 28, 2);
 
   return canvas;
+}
+
+function measurePlacardLayout(ctx, profile, width) {
+  const sectionX = 94;
+  const textW = width - sectionX * 2;
+  const photoX = 250;
+  const photoY = 205;
+  const photoW = 700;
+  const photoH = Math.round(photoW * (els.portraitCanvas.height / els.portraitCanvas.width));
+  const traits = getNormalizedTraits(profile.scores, profile.scoreMaximums).slice(0, 5);
+
+  let y = photoY + photoH + 72;
+  const typeLabelY = y;
+  y += 44;
+
+  ctx.font = "900 44px system-ui, sans-serif";
+  const titleY = y;
+  y += getWrappedTextHeight(ctx, profile.title, textW, 54, 2) + 30;
+
+  ctx.font = "700 29px system-ui, sans-serif";
+  const summaryY = y;
+  y += getWrappedTextHeight(ctx, profile.summary, textW, 42, 5) + 38;
+
+  const traitsLabelY = y;
+  y += 38;
+  const traitsY = y;
+  y += Math.ceil(traits.length / 2) * 64;
+
+  return {
+    height: Math.ceil(y + 90),
+    sectionX,
+    textW,
+    photoX,
+    photoY,
+    photoW,
+    photoH,
+    typeLabelY,
+    titleY,
+    summaryY,
+    traitsLabelY,
+    traitsY,
+    traits,
+  };
 }
 
 function getPreferenceSummary() {
@@ -3603,6 +3668,8 @@ els.preferenceButtons.forEach((button) => {
 
 els.startButton.addEventListener("click", startQuiz);
 els.sampleButton.addEventListener("click", randomSample);
+els.startNoticeYesButton.addEventListener("click", confirmStartNotice);
+els.startNoticeNoButton.addEventListener("click", cancelStartNotice);
 els.backButton.addEventListener("click", goBack);
 els.resetButton.addEventListener("click", clearCurrentAnswer);
 els.downloadButton.addEventListener("click", downloadPortrait);
