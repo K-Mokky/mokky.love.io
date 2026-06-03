@@ -107,6 +107,23 @@ test("appearance preference questions cover concrete face and style types", () =
   assert.match(result.copy, /키치/);
 });
 
+test("question copy uses natural ideal-type preference phrasing", () => {
+  const context = loadApp();
+  const result = vm.runInContext(
+    `(() => ({
+      texts: questionBank.map((question) => question.text),
+      animalQuestion: questionBank.find((question) => question.text.includes("동물이라면"))?.text,
+    }))()`,
+    context,
+  );
+
+  assert.equal(result.texts.length, 80);
+  assert.equal(result.texts.every((text) => text.includes("이상형")), true);
+  assert.equal(result.texts.every((text) => text.endsWith("좋겠나요?")), true);
+  assert.equal(result.animalQuestion, "이상형이 동물이라면, 어떤 동물이었으면 좋겠나요?");
+  assert.equal(result.texts.some((text) => /동물상으로 다시 고른다면|어떤 분위기가 궁금한가요/.test(text)), false);
+});
+
 test("selected quiz questions stay unique and keep a 50% appearance ratio", () => {
   const context = loadApp();
   const result = vm.runInContext(
