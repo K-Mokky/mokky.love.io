@@ -1820,6 +1820,8 @@ const state = {
   targetGender: "woman",
   targetAgeRange: "20s",
   selectedPortrait: null,
+  feedbackSubmitting: false,
+  feedbackSubmitted: false,
 };
 
 const portraitAssets = {
@@ -1858,6 +1860,13 @@ const els = {
   downloadButton: document.querySelector("#downloadButton"),
   sharePortraitButton: document.querySelector("#sharePortraitButton"),
   sharePlacardButton: document.querySelector("#sharePlacardButton"),
+  feedbackButtons: [...document.querySelectorAll("[data-feedback-choice]")],
+  feedbackStatus: document.querySelector("#feedbackStatus"),
+  feedbackModal: document.querySelector("#feedbackModal"),
+  feedbackReason: document.querySelector("#feedbackReason"),
+  feedbackCloseButton: document.querySelector("#feedbackCloseButton"),
+  feedbackSkipReasonButton: document.querySelector("#feedbackSkipReasonButton"),
+  feedbackSubmitReasonButton: document.querySelector("#feedbackSubmitReasonButton"),
   restartButton: document.querySelector("#restartButton"),
   restartTopButton: document.querySelector("#restartTopButton"),
 };
@@ -1937,6 +1946,7 @@ function setMode(mode) {
   prepareQuestionRun();
   state.started = false;
   state.selectedPortrait = null;
+  resetFeedbackSurvey();
   state.resultToken += 1;
   setImageStatus("idle");
   els.modeButtons.forEach((button) => {
@@ -1982,6 +1992,7 @@ function resetQuiz() {
   prepareQuestionRun();
   state.started = false;
   state.selectedPortrait = null;
+  resetFeedbackSurvey();
   state.resultToken += 1;
   setPortraitActionsDisabled(false);
   setImageStatus("idle");
@@ -2293,6 +2304,7 @@ function showResult() {
   state.resultToken += 1;
   const resultToken = state.resultToken;
   const profile = buildProfile();
+  resetFeedbackSurvey();
   els.resultTitle.textContent = profile.title;
   els.resultSummary.textContent = profile.summary;
   renderTraitList(profile.scores, profile.scoreMaximums);
@@ -2315,6 +2327,151 @@ function renderTraitList(scores, maximums = computeScoreMaximums()) {
     `;
     els.traitList.append(item);
   });
+}
+
+function resetFeedbackSurvey() {
+  state.feedbackSubmitting = false;
+  state.feedbackSubmitted = false;
+  closeFeedbackModal();
+  if (els.feedbackReason) {
+    els.feedbackReason.value = "";
+  }
+  setFeedbackStatus("");
+  setFeedbackButtonsDisabled(false);
+  els.feedbackButtons.forEach((button) => button.classList.remove("selected"));
+}
+
+function setFeedbackStatus(message, tone = "default") {
+  if (!els.feedbackStatus) return;
+  els.feedbackStatus.textContent = message;
+  els.feedbackStatus.dataset.tone = tone;
+}
+
+function setFeedbackButtonsDisabled(disabled) {
+  els.feedbackButtons.forEach((button) => {
+    button.disabled = disabled;
+  });
+  [els.feedbackSkipReasonButton, els.feedbackSubmitReasonButton].forEach((button) => {
+    if (button) button.disabled = disabled;
+  });
+}
+
+function openFeedbackModal() {
+  if (!els.feedbackModal) return;
+  els.feedbackModal.classList.remove("hidden");
+  if (els.feedbackReason) {
+    els.feedbackReason.value = "";
+    setTimeout(() => els.feedbackReason.focus?.(), 0);
+  }
+}
+
+function closeFeedbackModal() {
+  if (!els.feedbackModal) return;
+  els.feedbackModal.classList.add("hidden");
+}
+
+function handleFeedbackChoice(choice) {
+  if (state.feedbackSubmitting || state.feedbackSubmitted) return;
+  if (choice === "liked") {
+    submitFeedback("liked");
+    return;
+  }
+  if (choice === "disliked") {
+    openFeedbackModal();
+  }
+}
+
+async function submitFeedback(satisfaction, reason = "") {
+  if (state.feedbackSubmitting || state.feedbackSubmitted) return;
+
+  state.feedbackSubmitting = true;
+  setFeedbackButtonsDisabled(true);
+  setFeedbackStatus("설문을 제출하는 중이에요...");
+
+  const payload = makeFeedbackPayload(satisfaction, reason);
+  markFeedbackSelection(satisfaction);
+
+  try {
+    const result = await sendFeedbackPayload(payload);
+    state.feedbackSubmitted = true;
+    closeFeedbackModal();
+    setFeedbackStatus(
+      result.stored
+        ? "참여 완료! 의견 고마워요."
+        : "참여 완료! 현재 서버 저장소가 연결되지 않아 이 브라우저에만 임시 기록됐어요.",
+      result.stored ? "success" : "local",
+    );
+  } catch (error) {
+    console.warn("Feedback submit failed; storing locally only:", error);
+    persistFeedbackLocally(payload);
+    state.feedbackSubmitted = true;
+    closeFeedbackModal();
+    setFeedbackStatus("참여 완료! 네트워크 문제로 이 브라우저에만 임시 기록됐어요.", "local");
+  } finally {
+    state.feedbackSubmitting = false;
+    setFeedbackButtonsDisabled(state.feedbackSubmitted);
+  }
+}
+
+function markFeedbackSelection(satisfaction) {
+  els.feedbackButtons.forEach((button) => {
+    button.classList.toggle("selected", button.dataset.feedbackChoice === satisfaction);
+  });
+}
+
+function makeFeedbackPayload(satisfaction, reason = "") {
+  const profile = buildProfile();
+  const topTraits = getNormalizedTraits(profile.scores, profile.scoreMaximums)
+    .slice(0, 5)
+    .map((trait) => ({
+      key: trait.key,
+      label: traitMeta[trait.key].label,
+      percent: trait.percent,
+    }));
+
+  return {
+    satisfaction,
+    reason: String(reason || "").trim().slice(0, 600),
+    mode: state.mode,
+    targetGender: state.targetGender,
+    targetAgeRange: state.targetAgeRange,
+    resultTitle: profile.title,
+    topTraits,
+    submittedAt: new Date().toISOString(),
+  };
+}
+
+async function sendFeedbackPayload(payload) {
+  if (typeof fetch !== "function") {
+    persistFeedbackLocally(payload);
+    return { ok: true, stored: false };
+  }
+
+  const response = await fetch("/api/feedback", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || data.ok === false) {
+    throw new Error(data.message || `Feedback request failed: ${response.status}`);
+  }
+  if (!data.stored) {
+    persistFeedbackLocally(payload);
+  }
+  return data;
+}
+
+function persistFeedbackLocally(payload) {
+  if (typeof localStorage === "undefined") return;
+  try {
+    const key = "ideal-type-feedback-drafts";
+    const previous = JSON.parse(localStorage.getItem(key) || "[]");
+    previous.push(payload);
+    localStorage.setItem(key, JSON.stringify(previous.slice(-20)));
+  } catch (error) {
+    console.warn("Local feedback persistence failed:", error);
+  }
 }
 
 async function drawPortrait(profile, resultToken = state.resultToken) {
@@ -3273,7 +3430,7 @@ function createPlacardCanvas(profile) {
   });
   y += Math.ceil(traits.length / 2) * 64 + 20;
 
-  const noteText = "검사 내용은 어디에도 저장되지 않고 결과 표시 후 파기돼요. 결과 저장용 DB 자체도 존재하지 않아요.";
+  const noteText = "검사 답변 원문과 결과 이미지는 저장하지 않아요. 선택 입력한 의견은 저장소 연결 시 개선 참고용으로만 저장돼요.";
   ctx.font = "800 22px system-ui, sans-serif";
   const noteTextHeight = getWrappedTextHeight(ctx, noteText, width - 240, 28, 2);
   const noteH = noteTextHeight + 48;
@@ -3352,6 +3509,14 @@ els.resetButton.addEventListener("click", clearCurrentAnswer);
 els.downloadButton.addEventListener("click", downloadPortrait);
 els.sharePortraitButton.addEventListener("click", sharePortrait);
 els.sharePlacardButton.addEventListener("click", sharePlacard);
+els.feedbackButtons.forEach((button) => {
+  button.addEventListener("click", () => handleFeedbackChoice(button.dataset.feedbackChoice));
+});
+els.feedbackCloseButton.addEventListener("click", closeFeedbackModal);
+els.feedbackSkipReasonButton.addEventListener("click", () => submitFeedback("disliked"));
+els.feedbackSubmitReasonButton.addEventListener("click", () => {
+  submitFeedback("disliked", els.feedbackReason.value);
+});
 els.restartButton.addEventListener("click", resetQuiz);
 els.restartTopButton.addEventListener("click", resetQuiz);
 

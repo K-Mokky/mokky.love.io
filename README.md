@@ -14,8 +14,9 @@
 - 이상형 이미지 생성 전 성별(여성/남성)과 나이대(10대 후반/20대/30대/상관없음) 선택
 - 답변별 성향 점수 계산과 Top trait 기반 이상형 설명 생성
 - 브라우저 `canvas`로 가상의 사진 스타일 이상형 이미지 생성
-- 검사 내용과 이미지를 서버/DB에 저장하지 않는 로컬 생성 구조
+- 검사 답변 원문과 이미지를 서버/DB에 저장하지 않는 로컬 생성 구조
 - 생성된 사진만 공유하거나 사진+결과 정보 플랜카드로 공유
+- 결과 만족도 설문 UI와 선택형 아쉬운 이유 입력
 - Vercel 정적 페이지 + Serverless Functions 배포 구성
 
 ## 파일 구성
@@ -24,6 +25,7 @@
 - `styles.css`: 핑크빛 로고와 반응형 UI
 - `app.js`: 질문 뱅크, 성향 추론, 결과 UI, 사진 스타일 canvas 이미지와 공유 이미지 생성
 - `api/health.js`: 배포 상태 확인
+- `api/feedback.js`: 결과 만족도 설문 수신. 저장소 미연결 시 `stored=false`로 응답
 - `vercel.json`: Vercel 배포/함수 설정
 - `.env.example`: Vercel 환경변수 템플릿
 
@@ -33,7 +35,7 @@
 npm run local
 ```
 
-그다음 <http://127.0.0.1:5173>을 열면 됩니다. 이미지 생성은 브라우저에서만 처리되므로 별도 API 키나 DB가 필요 없어요.
+그다음 <http://127.0.0.1:5173>을 열면 됩니다. 이미지 생성은 브라우저에서만 처리되므로 별도 이미지 API 키나 DB가 필요 없어요.
 
 ```bash
 npm run preview
@@ -53,9 +55,38 @@ npm run deploy
 
 - Build Command: 비워두거나 `npm run vercel-build`
 - Output Directory: 프로젝트 루트
-- Functions: `/api/health`
+- Functions: `/api/health`, `/api/feedback`
 
 배포 후 `https://<your-vercel-domain>/api/health`에서 `imageMode`가 `browser-canvas`인지 확인하면 됩니다.
+
+## 설문 저장소 설정
+
+결과창 설문 UI 자체는 DB 없이도 표시되고 제출할 수 있습니다. 다만 여러 사용자의 응답을 실제로 모아 분석하려면 저장소가 필요합니다.
+
+지원 방식은 두 가지입니다.
+
+1. `FEEDBACK_WEBHOOK_URL`: 설문 payload를 외부 webhook으로 전달
+2. `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY`: Supabase REST API로 저장
+
+Supabase를 쓸 경우 기본 테이블 이름은 `ideal_type_feedback`입니다.
+
+```sql
+create table public.ideal_type_feedback (
+  id uuid primary key default gen_random_uuid(),
+  satisfaction text not null check (satisfaction in ('liked', 'disliked')),
+  reason text,
+  mode integer,
+  target_gender text,
+  target_age_range text,
+  result_title text,
+  top_traits jsonb not null default '[]'::jsonb,
+  user_agent text,
+  submitted_at timestamptz,
+  created_at timestamptz not null default now()
+);
+```
+
+서버 함수에서 service role key를 사용하므로 이 키는 브라우저에 노출하지 말고 Vercel 환경변수에만 저장해야 합니다.
 
 ## 검증
 

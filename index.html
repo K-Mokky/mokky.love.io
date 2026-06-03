@@ -130,7 +130,7 @@
               <p class="trait-list-title">성향별 충족도 · 각 성향 100점 기준</p>
               <div class="trait-list" id="traitList"></div>
               <div class="privacy-note" role="note">
-                검사 내용은 어디에도 저장되지 않고 결과 표시 후 파기돼요. 결과 저장용 DB 자체도 존재하지 않아요.
+                검사 답변 원문과 결과 이미지는 저장하지 않아요. 설문을 제출하면 만족도와 선택 작성한 이유만 개선 참고용으로 전송될 수 있어요.
               </div>
               <div class="result-actions">
                 <button class="primary-button" id="downloadButton" type="button">이미지 저장</button>
@@ -140,10 +140,35 @@
                 <button class="primary-button" id="sharePortraitButton" type="button">나의 이상형 공유하기</button>
                 <button class="secondary-button" id="sharePlacardButton" type="button">나의 이상형의 플랜카드 공유하기</button>
               </div>
+              <section class="feedback-panel" id="feedbackPanel" aria-label="결과 만족도 설문">
+                <p class="eyebrow">FEEDBACK</p>
+                <h3>결과가 마음에 드나요?</h3>
+                <p>결과 개선을 위한 짧은 설문이에요. 플랜카드 저장/공유 이미지에는 포함되지 않아요.</p>
+                <div class="feedback-actions" role="group" aria-label="결과 만족도 선택">
+                  <button class="feedback-button" type="button" data-feedback-choice="liked">마음에 들어요</button>
+                  <button class="feedback-button" type="button" data-feedback-choice="disliked">아쉬워요</button>
+                </div>
+                <p class="feedback-status" id="feedbackStatus" aria-live="polite"></p>
+              </section>
             </div>
           </section>
         </section>
       </main>
+    </div>
+
+    <div class="feedback-modal hidden" id="feedbackModal" role="dialog" aria-modal="true" aria-labelledby="feedbackModalTitle">
+      <div class="feedback-modal-card">
+        <button class="icon-button feedback-close-button" id="feedbackCloseButton" type="button" aria-label="설문 창 닫기">×</button>
+        <p class="eyebrow">OPTIONAL FEEDBACK</p>
+        <h2 id="feedbackModalTitle">어떤 점이 아쉬웠나요?</h2>
+        <p>이유 작성은 선택이에요. 비워두고 제출해도 설문에 참여할 수 있어요.</p>
+        <label class="feedback-reason-label" for="feedbackReason">아쉬웠던 이유</label>
+        <textarea id="feedbackReason" maxlength="600" placeholder="예: 설명이 너무 길었어요, 사진 분위기가 취향과 달랐어요 등"></textarea>
+        <div class="feedback-modal-actions">
+          <button class="secondary-button" id="feedbackSkipReasonButton" type="button">이유 없이 제출</button>
+          <button class="primary-button" id="feedbackSubmitReasonButton" type="button">제출하기</button>
+        </div>
+      </div>
     </div>
 
     <script src="app.js"></script>

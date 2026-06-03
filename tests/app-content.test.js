@@ -12,6 +12,7 @@ function createElementStub() {
     hidden: false,
     innerHTML: "",
     textContent: "",
+    value: "",
     style: { setProperty() {} },
     classList: { toggle() {}, add() {}, remove() {} },
     append() {},
@@ -381,6 +382,20 @@ test("result screen omits visible photo information blocks", () => {
   assert.doesNotMatch(markup, /image-status|imageStatus|prompt-box|imagePrompt|copyPromptButton|PHOTO STYLE/);
   assert.doesNotMatch(styles, /\.image-status|\.prompt-box/);
   assert.doesNotMatch(source, /imagePrompt|copyPromptButton|copyPrompt|PHOTO STYLE/);
+});
+
+test("feedback survey is visible on result screen but excluded from placard canvas", () => {
+  const markup = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
+  const source = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+  const context = loadApp();
+  const placardFunctionSource = vm.runInContext("createPlacardCanvas.toString()", context);
+
+  assert.match(markup, /id="feedbackPanel"/);
+  assert.match(markup, /결과가 마음에 드나요/);
+  assert.match(markup, /id="feedbackModal"/);
+  assert.match(markup, /이유 없이 제출/);
+  assert.match(source, /satisfaction/);
+  assert.doesNotMatch(placardFunctionSource, /feedback|설문|만족|아쉬웠던 이유|결과가 마음에 드나요/);
 });
 
 test("question count is compact and non-wrapping", () => {
