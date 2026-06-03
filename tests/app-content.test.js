@@ -160,6 +160,37 @@ test("selected quiz questions stay unique and keep a 50% appearance ratio", () =
   assert.equal(result.order20Appearance, 10);
 });
 
+test("question history avoids repeat prompts until the full bank is used", () => {
+  const context = loadApp();
+  const result = vm.runInContext(
+    `(() => {
+      state.mode = 20;
+      state.seenQuestionIds = new Set();
+      const runs = [];
+      for (let index = 0; index < 4; index += 1) {
+        prepareQuestionRun();
+        rememberCurrentQuestionOrder();
+        runs.push([...state.questionOrder]);
+      }
+      const flat = runs.flat();
+      return {
+        runLengths: runs.map((run) => run.length),
+        uniquePerRun: runs.map((run) => new Set(run).size),
+        totalCount: flat.length,
+        totalUnique: new Set(flat).size,
+        seenCount: state.seenQuestionIds.size,
+      };
+    })()`,
+    context,
+  );
+
+  assert.equal(result.runLengths.join(","), "20,20,20,20");
+  assert.equal(result.uniquePerRun.join(","), "20,20,20,20");
+  assert.equal(result.totalCount, 80);
+  assert.equal(result.totalUnique, 80);
+  assert.equal(result.seenCount, 80);
+});
+
 test("Gemini copy prompt pins a youthful 20s age range", () => {
   const context = loadApp();
   const prompt = vm.runInContext(
@@ -408,11 +439,29 @@ test("feedback survey is visible on result screen but excluded from placard canv
   const placardFunctionSource = vm.runInContext("createPlacardCanvas.toString()", context);
 
   assert.match(markup, /id="feedbackPanel"/);
-  assert.match(markup, /결과가 마음에 드나요/);
+  assert.match(markup, /결과가 마음에 드시나요/);
   assert.match(markup, /id="feedbackModal"/);
   assert.match(markup, /이유 없이 제출/);
+  assert.match(markup, /검사 결과는 어디에도 저장되지 않습니다/);
+  assert.match(source, /설문에 참여해주셔서 감사합니다/);
   assert.match(source, /satisfaction/);
-  assert.doesNotMatch(placardFunctionSource, /feedback|설문|만족|아쉬웠던 이유|결과가 마음에 드나요/);
+  assert.doesNotMatch(placardFunctionSource, /feedback|설문|만족|아쉬웠던 이유|결과가 마음에 드시나요/);
+});
+
+test("story share options and placard copy are present", () => {
+  const markup = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
+  const source = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+  const context = loadApp();
+  const placardFunctionSource = vm.runInContext("createPlacardCanvas.toString()", context);
+
+  assert.match(markup, /id="shareInstagramStoryButton"/);
+  assert.match(markup, /인스타그램 스토리/);
+  assert.match(markup, /id="shareFacebookStoryButton"/);
+  assert.match(markup, /페이스북 스토리/);
+  assert.match(source, /shareStoryImage/);
+  assert.match(placardFunctionSource, /내 이상형의 플랜카드/);
+  assert.match(placardFunctionSource, /이상형의 타입/);
+  assert.match(placardFunctionSource, /성향별 충족도 · 각 성향 100점 기준/);
 });
 
 test("question count is compact and non-wrapping", () => {

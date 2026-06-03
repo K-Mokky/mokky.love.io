@@ -1809,6 +1809,7 @@ const questionBank = questionBlueprints.map((question, index) => ({
 }));
 
 const questionMap = new Map(questionBank.map((question) => [question.id, question]));
+const seenQuestionStorageKey = "ideal-type-seen-question-ids";
 
 const state = {
   mode: 20,
@@ -1822,6 +1823,7 @@ const state = {
   selectedPortrait: null,
   feedbackSubmitting: false,
   feedbackSubmitted: false,
+  seenQuestionIds: loadSeenQuestionIds(),
 };
 
 const portraitAssets = {
@@ -1860,6 +1862,9 @@ const els = {
   downloadButton: document.querySelector("#downloadButton"),
   sharePortraitButton: document.querySelector("#sharePortraitButton"),
   sharePlacardButton: document.querySelector("#sharePlacardButton"),
+  shareInstagramStoryButton: document.querySelector("#shareInstagramStoryButton"),
+  shareFacebookStoryButton: document.querySelector("#shareFacebookStoryButton"),
+  storyShareStatus: document.querySelector("#storyShareStatus"),
   feedbackButtons: [...document.querySelectorAll("[data-feedback-choice]")],
   feedbackStatus: document.querySelector("#feedbackStatus"),
   feedbackModal: document.querySelector("#feedbackModal"),
@@ -1871,6 +1876,50 @@ const els = {
   restartTopButton: document.querySelector("#restartTopButton"),
 };
 
+function loadSeenQuestionIds() {
+  if (typeof localStorage === "undefined") return new Set();
+  try {
+    const stored = JSON.parse(localStorage.getItem(seenQuestionStorageKey) || "[]");
+    return new Set(stored.filter((id) => questionMap.has(id)));
+  } catch (error) {
+    console.warn("Seen question history load failed:", error);
+    return new Set();
+  }
+}
+
+function saveSeenQuestionIds() {
+  if (typeof localStorage === "undefined") return;
+  try {
+    localStorage.setItem(seenQuestionStorageKey, JSON.stringify([...state.seenQuestionIds]));
+  } catch (error) {
+    console.warn("Seen question history save failed:", error);
+  }
+}
+
+function resetSeenQuestionCycleIfComplete() {
+  if (state.seenQuestionIds.size < questionBank.length) return;
+  state.seenQuestionIds.clear();
+  saveSeenQuestionIds();
+}
+
+function orderQuestionsByHistory(questions) {
+  const unseen = [];
+  const seen = [];
+  questions.forEach((question) => {
+    if (state.seenQuestionIds.has(question.id)) {
+      seen.push(question);
+    } else {
+      unseen.push(question);
+    }
+  });
+  return [...shuffleQuestions(unseen), ...shuffleQuestions(seen)];
+}
+
+function rememberCurrentQuestionOrder() {
+  activeQuestions().forEach((question) => state.seenQuestionIds.add(question.id));
+  saveSeenQuestionIds();
+}
+
 function activeQuestions() {
   if (state.questionOrder.length !== state.mode) {
     prepareQuestionRun();
@@ -1880,8 +1929,13 @@ function activeQuestions() {
 }
 
 function prepareQuestionRun() {
-  const appearanceQuestions = shuffleQuestions(questionBank.filter((question) => question.category === appearanceCategory));
-  const nonAppearanceQuestions = shuffleQuestions(questionBank.filter((question) => question.category !== appearanceCategory));
+  resetSeenQuestionCycleIfComplete();
+  const appearanceQuestions = orderQuestionsByHistory(
+    questionBank.filter((question) => question.category === appearanceCategory),
+  );
+  const nonAppearanceQuestions = orderQuestionsByHistory(
+    questionBank.filter((question) => question.category !== appearanceCategory),
+  );
   const appearanceTarget = Math.min(
     appearanceQuestions.length,
     Math.round(state.mode * targetAppearanceQuestionShare),
@@ -1947,6 +2001,7 @@ function setMode(mode) {
   state.started = false;
   state.selectedPortrait = null;
   resetFeedbackSurvey();
+  setStoryShareStatus("");
   state.resultToken += 1;
   setImageStatus("idle");
   els.modeButtons.forEach((button) => {
@@ -1977,6 +2032,7 @@ function setPreference(preference, value) {
 
 function startQuiz() {
   prepareQuestionRun();
+  rememberCurrentQuestionOrder();
   state.answers = [];
   state.selectedPortrait = null;
   state.started = true;
@@ -1993,6 +2049,7 @@ function resetQuiz() {
   state.started = false;
   state.selectedPortrait = null;
   resetFeedbackSurvey();
+  setStoryShareStatus("");
   state.resultToken += 1;
   setPortraitActionsDisabled(false);
   setImageStatus("idle");
@@ -2305,6 +2362,7 @@ function showResult() {
   const resultToken = state.resultToken;
   const profile = buildProfile();
   resetFeedbackSurvey();
+  setStoryShareStatus("");
   els.resultTitle.textContent = profile.title;
   els.resultSummary.textContent = profile.summary;
   renderTraitList(profile.scores, profile.scoreMaximums);
@@ -2392,21 +2450,16 @@ async function submitFeedback(satisfaction, reason = "") {
   markFeedbackSelection(satisfaction);
 
   try {
-    const result = await sendFeedbackPayload(payload);
+    await sendFeedbackPayload(payload);
     state.feedbackSubmitted = true;
     closeFeedbackModal();
-    setFeedbackStatus(
-      result.stored
-        ? "참여 완료! 의견 고마워요."
-        : "참여 완료! 현재 서버 저장소가 연결되지 않아 이 브라우저에만 임시 기록됐어요.",
-      result.stored ? "success" : "local",
-    );
+    setFeedbackStatus("설문에 참여해주셔서 감사합니다.", "success");
   } catch (error) {
     console.warn("Feedback submit failed; storing locally only:", error);
     persistFeedbackLocally(payload);
     state.feedbackSubmitted = true;
     closeFeedbackModal();
-    setFeedbackStatus("참여 완료! 네트워크 문제로 이 브라우저에만 임시 기록됐어요.", "local");
+    setFeedbackStatus("설문에 참여해주셔서 감사합니다.", "success");
   } finally {
     state.feedbackSubmitting = false;
     setFeedbackButtonsDisabled(state.feedbackSubmitted);
@@ -2420,23 +2473,12 @@ function markFeedbackSelection(satisfaction) {
 }
 
 function makeFeedbackPayload(satisfaction, reason = "") {
-  const profile = buildProfile();
-  const topTraits = getNormalizedTraits(profile.scores, profile.scoreMaximums)
-    .slice(0, 5)
-    .map((trait) => ({
-      key: trait.key,
-      label: traitMeta[trait.key].label,
-      percent: trait.percent,
-    }));
-
   return {
     satisfaction,
     reason: String(reason || "").trim().slice(0, 600),
     mode: state.mode,
     targetGender: state.targetGender,
     targetAgeRange: state.targetAgeRange,
-    resultTitle: profile.title,
-    topTraits,
     submittedAt: new Date().toISOString(),
   };
 }
@@ -3183,7 +3225,13 @@ function setImageStatus(status, customMessage) {
 }
 
 function setPortraitActionsDisabled(disabled) {
-  [els.downloadButton, els.sharePortraitButton, els.sharePlacardButton].forEach((button) => {
+  [
+    els.downloadButton,
+    els.sharePortraitButton,
+    els.sharePlacardButton,
+    els.shareInstagramStoryButton,
+    els.shareFacebookStoryButton,
+  ].forEach((button) => {
     if (button) {
       button.disabled = disabled;
     }
@@ -3257,6 +3305,7 @@ function particle(text, consonantParticle, vowelParticle) {
 
 function randomSample() {
   prepareQuestionRun();
+  rememberCurrentQuestionOrder();
   state.answers = activeQuestions().map((_, index) => {
     const seed = hashAnswers(`${Date.now()}-${index}-${state.mode}`);
     const question = activeQuestions()[index];
@@ -3289,6 +3338,45 @@ async function sharePortrait() {
   });
 }
 
+async function shareStoryImage(target) {
+  const targetMap = {
+    instagram: {
+      label: "인스타그램",
+      button: els.shareInstagramStoryButton,
+      filename: makePortraitFilename("instagram-story-ideal-type"),
+    },
+    facebook: {
+      label: "페이스북",
+      button: els.shareFacebookStoryButton,
+      filename: makePortraitFilename("facebook-story-ideal-type"),
+    },
+  };
+  const config = targetMap[target];
+  if (!config) return;
+
+  setStoryShareStatus(`${config.label} 스토리용 이미지를 준비하는 중이에요.`);
+  const outcome = await shareCanvasImage({
+    canvas: els.portraitCanvas,
+    filename: config.filename,
+    title: `${config.label} 스토리로 공유`,
+    text: "공유 시트에서 스토리를 선택해 올려주세요.",
+    button: config.button,
+  });
+
+  if (outcome === "shared") {
+    setStoryShareStatus(`공유 시트에서 ${config.label} 스토리를 선택해 올려주세요.`);
+  } else if (outcome === "downloaded") {
+    setStoryShareStatus(`스토리용 이미지가 저장됐어요. ${config.label} 앱에서 스토리로 올려주세요.`);
+  } else {
+    setStoryShareStatus("스토리 공유가 취소됐어요.");
+  }
+}
+
+function setStoryShareStatus(message) {
+  if (!els.storyShareStatus) return;
+  els.storyShareStatus.textContent = message;
+}
+
 function makePortraitFilename(prefix) {
   const selected = state.selectedPortrait;
   if (!selected) {
@@ -3302,7 +3390,7 @@ async function sharePlacard() {
   await shareCanvasImage({
     canvas: placardCanvas,
     filename: "my-ideal-type-placard.png",
-    title: "나의 이상형 플랜카드",
+    title: "내 이상형의 플랜카드",
     text: "나의 이상형 사진과 결과 정보예요.",
     button: els.sharePlacardButton,
   });
@@ -3310,6 +3398,7 @@ async function sharePlacard() {
 
 async function shareCanvasImage({ canvas, filename, title, text, button }) {
   const originalText = button.textContent;
+  let outcome = "aborted";
   button.disabled = true;
   button.textContent = "공유 준비 중";
 
@@ -3320,15 +3409,18 @@ async function shareCanvasImage({ canvas, filename, title, text, button }) {
     if (navigator.canShare?.({ files: [file] })) {
       await navigator.share({ files: [file], title, text });
       button.textContent = "공유 완료";
+      outcome = "shared";
     } else {
       downloadCanvas(canvas, filename);
       button.textContent = "이미지 저장됨";
+      outcome = "downloaded";
     }
   } catch (error) {
     if (error?.name !== "AbortError") {
       console.warn("Image share fell back to download:", error);
       downloadCanvas(canvas, filename);
       button.textContent = "이미지 저장됨";
+      outcome = "downloaded";
     }
   } finally {
     setTimeout(() => {
@@ -3336,6 +3428,8 @@ async function shareCanvasImage({ canvas, filename, title, text, button }) {
       button.textContent = originalText;
     }, 1200);
   }
+
+  return outcome;
 }
 
 function canvasToBlob(canvas) {
@@ -3378,7 +3472,7 @@ function createPlacardCanvas(profile) {
   ctx.fillStyle = varColor("--pink-deep", "#d92b78");
   ctx.font = "900 38px system-ui, sans-serif";
   ctx.textAlign = "left";
-  ctx.fillText("나의 이상형 플랜카드", 94, 122);
+  ctx.fillText("내 이상형의 플랜카드", 94, 122);
 
   ctx.fillStyle = "rgba(36,33,43,0.54)";
   ctx.font = "800 24px system-ui, sans-serif";
@@ -3399,6 +3493,11 @@ function createPlacardCanvas(profile) {
   ctx.stroke();
 
   let y = photoY + photoH + 72;
+  ctx.fillStyle = "rgba(217,43,120,0.92)";
+  ctx.font = "900 25px system-ui, sans-serif";
+  ctx.fillText("이상형의 타입", 94, y);
+  y += 44;
+
   ctx.fillStyle = "#24212b";
   ctx.font = "900 44px system-ui, sans-serif";
   y = drawWrappedText(ctx, profile.title, 94, y, width - 188, 54, 2) + 30;
@@ -3409,7 +3508,7 @@ function createPlacardCanvas(profile) {
 
   ctx.fillStyle = "rgba(217,43,120,0.92)";
   ctx.font = "900 25px system-ui, sans-serif";
-  ctx.fillText("TOP TRAITS", 94, y);
+  ctx.fillText("성향별 충족도 · 각 성향 100점 기준", 94, y);
   y += 38;
 
   const traits = getNormalizedTraits(profile.scores, profile.scoreMaximums).slice(0, 5);
@@ -3430,7 +3529,7 @@ function createPlacardCanvas(profile) {
   });
   y += Math.ceil(traits.length / 2) * 64 + 20;
 
-  const noteText = "검사 답변 원문과 결과 이미지는 저장하지 않아요. 선택 입력한 의견은 저장소 연결 시 개선 참고용으로만 저장돼요.";
+  const noteText = "검사 결과는 어디에도 저장되지 않습니다.";
   ctx.font = "800 22px system-ui, sans-serif";
   const noteTextHeight = getWrappedTextHeight(ctx, noteText, width - 240, 28, 2);
   const noteH = noteTextHeight + 48;
@@ -3509,6 +3608,8 @@ els.resetButton.addEventListener("click", clearCurrentAnswer);
 els.downloadButton.addEventListener("click", downloadPortrait);
 els.sharePortraitButton.addEventListener("click", sharePortrait);
 els.sharePlacardButton.addEventListener("click", sharePlacard);
+els.shareInstagramStoryButton.addEventListener("click", () => shareStoryImage("instagram"));
+els.shareFacebookStoryButton.addEventListener("click", () => shareStoryImage("facebook"));
 els.feedbackButtons.forEach((button) => {
   button.addEventListener("click", () => handleFeedbackChoice(button.dataset.feedbackChoice));
 });

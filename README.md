@@ -94,8 +94,6 @@ create table public.ideal_type_feedback (
   mode integer,
   target_gender text,
   target_age_range text,
-  result_title text,
-  top_traits jsonb not null default '[]'::jsonb,
   user_agent text,
   submitted_at timestamptz,
   created_at timestamptz not null default now()
@@ -122,9 +120,7 @@ select
   reason,
   mode,
   target_gender,
-  target_age_range,
-  result_title,
-  top_traits
+  target_age_range
 from public.ideal_type_feedback
 order by created_at desc
 limit 100;

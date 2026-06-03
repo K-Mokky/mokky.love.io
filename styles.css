@@ -498,6 +498,50 @@ strong,
   margin-top: 10px;
 }
 
+.story-share-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+  padding: 12px;
+  border: 1px dashed rgba(255, 79, 155, 0.34);
+  border-radius: 12px;
+  background: rgba(255, 246, 251, 0.72);
+}
+
+.story-share-actions p {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: rgba(36, 33, 43, 0.66);
+  font-size: 0.86rem;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.story-share-button {
+  min-height: 42px;
+  border: 1px solid rgba(36, 33, 43, 0.12);
+  border-radius: 12px;
+  color: var(--ink);
+  background: #fff;
+  font-weight: 900;
+  box-shadow: 0 8px 18px rgba(36, 33, 43, 0.06);
+}
+
+.story-share-button:hover {
+  border-color: rgba(255, 79, 155, 0.62);
+  background: #fff6fa;
+}
+
+.story-share-button:disabled {
+  cursor: default;
+  opacity: 0.72;
+}
+
+.story-share-status {
+  min-height: 1.3em;
+}
+
 .feedback-panel {
   margin-top: 18px;
   padding: 16px;
@@ -898,7 +942,8 @@ strong,
   .preference-grid,
   .preference-options,
   .preference-group:nth-child(2) .preference-options,
-  .share-actions {
+  .share-actions,
+  .story-share-actions {
     grid-template-columns: 1fr;
   }
 

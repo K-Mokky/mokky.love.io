@@ -64,8 +64,6 @@ function normalizeFeedback(body, req) {
     mode: normalizeMode(body.mode),
     targetGender: cleanString(body.targetGender, 20),
     targetAgeRange: cleanString(body.targetAgeRange, 20),
-    resultTitle: cleanString(body.resultTitle, 180),
-    topTraits: normalizeTopTraits(body.topTraits),
     userAgent: cleanString(req.headers?.["user-agent"], 300),
     submittedAt: cleanString(body.submittedAt, 40) || new Date().toISOString(),
   };
@@ -74,22 +72,6 @@ function normalizeFeedback(body, req) {
 function normalizeMode(value) {
   const mode = Number(value);
   return [20, 50, 80].includes(mode) ? mode : null;
-}
-
-function normalizeTopTraits(value) {
-  if (!Array.isArray(value)) return [];
-  return value
-    .slice(0, 5)
-    .map((trait) => {
-      if (!isPlainObject(trait)) return null;
-      const percent = Math.round(Number(trait.percent));
-      return {
-        key: cleanString(trait.key, 40),
-        label: cleanString(trait.label, 40),
-        percent: Number.isFinite(percent) ? Math.max(0, Math.min(100, percent)) : 0,
-      };
-    })
-    .filter((trait) => trait && trait.key && trait.label);
 }
 
 async function storeFeedback(payload) {
@@ -130,8 +112,6 @@ async function insertSupabaseFeedback(payload) {
       mode: payload.mode,
       target_gender: payload.targetGender || null,
       target_age_range: payload.targetAgeRange || null,
-      result_title: payload.resultTitle || null,
-      top_traits: payload.topTraits,
       user_agent: payload.userAgent || null,
       submitted_at: payload.submittedAt,
     }),

@@ -130,7 +130,7 @@
               <p class="trait-list-title">성향별 충족도 · 각 성향 100점 기준</p>
               <div class="trait-list" id="traitList"></div>
               <div class="privacy-note" role="note">
-                검사 답변 원문과 결과 이미지는 저장하지 않아요. 설문을 제출하면 만족도와 선택 작성한 이유만 개선 참고용으로 전송될 수 있어요.
+                검사 결과는 어디에도 저장되지 않습니다.
               </div>
               <div class="result-actions">
                 <button class="primary-button" id="downloadButton" type="button">이미지 저장</button>
@@ -138,11 +138,17 @@
               </div>
               <div class="share-actions" aria-label="이상형 공유하기">
                 <button class="primary-button" id="sharePortraitButton" type="button">나의 이상형 공유하기</button>
-                <button class="secondary-button" id="sharePlacardButton" type="button">나의 이상형의 플랜카드 공유하기</button>
+                <button class="secondary-button" id="sharePlacardButton" type="button">내 이상형의 플랜카드 공유하기</button>
+              </div>
+              <div class="story-share-actions" aria-label="스토리 공유하기">
+                <p>스토리에 올리고 싶다면 공유 시트에서 앱을 선택해 주세요.</p>
+                <button class="story-share-button" id="shareInstagramStoryButton" type="button">인스타그램 스토리</button>
+                <button class="story-share-button" id="shareFacebookStoryButton" type="button">페이스북 스토리</button>
+                <p class="story-share-status" id="storyShareStatus" aria-live="polite"></p>
               </div>
               <section class="feedback-panel" id="feedbackPanel" aria-label="결과 만족도 설문">
                 <p class="eyebrow">FEEDBACK</p>
-                <h3>결과가 마음에 드나요?</h3>
+                <h3>결과가 마음에 드시나요?</h3>
                 <p>결과 개선을 위한 짧은 설문이에요. 플랜카드 저장/공유 이미지에는 포함되지 않아요.</p>
                 <div class="feedback-actions" role="group" aria-label="결과 만족도 선택">
                   <button class="feedback-button" type="button" data-feedback-choice="liked">마음에 들어요</button>

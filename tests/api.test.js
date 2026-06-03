@@ -28,8 +28,6 @@ test("feedback accepts liked survey without configured storage", async () => {
         mode: 80,
         targetGender: "woman",
         targetAgeRange: "20s",
-        resultTitle: "테스트 결과",
-        topTraits: [{ key: "warmth", label: "다정함", percent: 72 }],
         submittedAt: "2026-06-03T12:00:00.000Z",
       }),
       res,
@@ -75,6 +73,7 @@ test("feedback stores through Supabase publishable key without bearer auth", asy
           mode: 50,
           targetGender: "man",
           targetAgeRange: "30s",
+          // Result fields are intentionally ignored by the API so 검사 결과 is not stored.
           resultTitle: "테스트 결과",
           topTraits: [{ key: "clarity", label: "명확함", percent: 101 }],
         }),
@@ -93,7 +92,8 @@ test("feedback stores through Supabase publishable key without bearer auth", asy
   assert.equal(calls[0].options.headers.apikey, "sb_publishable_test");
   assert.equal(calls[0].options.headers.Authorization, undefined);
   assert.equal(inserted.reason, null);
-  assert.deepEqual(inserted.top_traits, [{ key: "clarity", label: "명확함", percent: 100 }]);
+  assert.equal("result_title" in inserted, false);
+  assert.equal("top_traits" in inserted, false);
 });
 
 test("feedback rejects invalid satisfaction values", async () => {

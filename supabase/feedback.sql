@@ -7,8 +7,6 @@ create table if not exists public.ideal_type_feedback (
   mode integer check (mode is null or mode in (20, 50, 80)),
   target_gender text,
   target_age_range text,
-  result_title text,
-  top_traits jsonb not null default '[]'::jsonb check (jsonb_typeof(top_traits) = 'array'),
   user_agent text,
   submitted_at timestamptz,
   created_at timestamptz not null default now()
@@ -29,5 +27,4 @@ create policy "Allow public feedback inserts"
     satisfaction in ('liked', 'disliked')
     and (reason is null or char_length(reason) <= 600)
     and (mode is null or mode in (20, 50, 80))
-    and jsonb_typeof(top_traits) = 'array'
   );
