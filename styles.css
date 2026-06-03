@@ -46,7 +46,7 @@ h2,
 p,
 button,
 strong,
-.trait-chip span {
+.trait-chip span:not(.trait-percent) {
   text-wrap: pretty;
 }
 
@@ -862,12 +862,20 @@ strong,
 
 .trait-chip {
   display: grid;
-  grid-template-columns: minmax(92px, 118px) minmax(0, 1fr) 50px;
+  grid-template-columns: minmax(92px, 118px) minmax(0, 1fr) minmax(58px, max-content);
   align-items: center;
   gap: 10px;
   min-height: 36px;
   color: var(--ink);
   font-weight: 800;
+}
+
+.trait-percent {
+  min-width: 58px;
+  text-align: right;
+  white-space: nowrap;
+  word-break: keep-all;
+  text-wrap: nowrap;
 }
 
 .trait-meter {
@@ -956,7 +964,7 @@ strong,
   }
 
   .trait-chip {
-    grid-template-columns: 84px minmax(0, 1fr) 34px;
+    grid-template-columns: 84px minmax(0, 1fr) minmax(54px, max-content);
     font-size: 0.9rem;
   }
 }

@@ -479,6 +479,17 @@ test("question count is compact and non-wrapping", () => {
   assert.match(styles, /#resultSummary\s*{[^}]*white-space:\s*pre-line;/s);
 });
 
+test("trait percentages stay on one line", () => {
+  const context = loadApp();
+  const styles = fs.readFileSync(path.join(__dirname, "..", "styles.css"), "utf8");
+  const renderSource = vm.runInContext("renderTraitList.toString()", context);
+
+  assert.match(renderSource, /class="trait-percent"/);
+  assert.match(styles, /\.trait-percent\s*{[^}]*white-space:\s*nowrap;/s);
+  assert.match(styles, /\.trait-percent\s*{[^}]*word-break:\s*keep-all;/s);
+  assert.match(styles, /\.trait-percent\s*{[^}]*text-wrap:\s*nowrap;/s);
+});
+
 
 test("brand exposes KMokky contact email", () => {
   const markup = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");

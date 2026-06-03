@@ -2381,7 +2381,7 @@ function renderTraitList(scores, maximums = computeScoreMaximums()) {
     item.innerHTML = `
       <span>${traitMeta[trait.key].label}</span>
       <span class="trait-meter"><span style="width: ${trait.percent}%"></span></span>
-      <span>${trait.percent}%</span>
+      <span class="trait-percent">${trait.percent}%</span>
     `;
     els.traitList.append(item);
   });
