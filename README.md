@@ -139,20 +139,6 @@ group by satisfaction
 order by responses desc;
 ```
 
-### 이메일 알림 설정
-
-설문이 접수될 때마다 Resend API로 알림 메일을 보낼 수 있습니다. 새 의존성 없이 Vercel Serverless Function에서 `fetch`로 Resend `POST /emails` API를 호출합니다.
-
-Vercel 환경변수:
-
-```text
-RESEND_API_KEY=re_your-server-only-resend-key
-FEEDBACK_EMAIL_TO=mokky@mokky.store
-FEEDBACK_EMAIL_FROM=Love Feedback <feedback@mokky.store>
-```
-
-`RESEND_API_KEY`는 서버 전용 secret입니다. `FEEDBACK_EMAIL_FROM`은 Resend에서 인증된 도메인의 발신 주소를 쓰는 것을 권장합니다. 메일 발송이 실패해도 설문 저장은 계속 성공 처리됩니다.
-
 ## 검증
 
 ```bash

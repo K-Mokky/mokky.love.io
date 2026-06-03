@@ -96,86 +96,6 @@ test("feedback stores through Supabase publishable key without bearer auth", asy
   assert.deepEqual(inserted.top_traits, [{ key: "clarity", label: "명확함", percent: 100 }]);
 });
 
-test("feedback emails a notification through Resend when configured", async () => {
-  const res = createRes();
-  const calls = [];
-
-  await withFeedbackEnvironment(
-    {
-      SUPABASE_URL: "https://example.supabase.co",
-      SUPABASE_PUBLISHABLE_KEY: "sb_publishable_test",
-      RESEND_API_KEY: "re_test",
-      FEEDBACK_EMAIL_TO: "mokky@mokky.store",
-      FEEDBACK_EMAIL_FROM: "Love Feedback <feedback@mokky.store>",
-    },
-    async () => {
-      global.fetch = async (url, options) => {
-        calls.push({ url, options });
-        if (String(url).includes("api.resend.com")) {
-          return { ok: true, json: async () => ({ id: "email_123" }) };
-        }
-        return { ok: true };
-      };
-
-      await feedback(
-        createReq("POST", {
-          satisfaction: "disliked",
-          reason: "사진 분위기가 <취향>과 달랐어요",
-          mode: 80,
-          targetGender: "woman",
-          targetAgeRange: "20s",
-          resultTitle: "맑은 다정함",
-          topTraits: [{ key: "warmth", label: "다정함", percent: 77 }],
-          submittedAt: "2026-06-03T12:00:00.000Z",
-        }),
-        res,
-      );
-    },
-  );
-
-  const body = res.json();
-  const emailCall = calls.find((call) => call.url === "https://api.resend.com/emails");
-  const emailPayload = JSON.parse(emailCall.options.body);
-
-  assert.equal(res.statusCode, 200);
-  assert.equal(body.notification.sent, true);
-  assert.equal(body.notification.provider, "resend");
-  assert.equal(body.notification.id, "email_123");
-  assert.equal(emailCall.options.headers.Authorization, "Bearer re_test");
-  assert.equal(emailPayload.from, "Love Feedback <feedback@mokky.store>");
-  assert.deepEqual(emailPayload.to, ["mokky@mokky.store"]);
-  assert.match(emailPayload.subject, /아쉬워요/);
-  assert.match(emailPayload.text, /사진 분위기가 <취향>과 달랐어요/);
-  assert.match(emailPayload.html, /사진 분위기가 &lt;취향&gt;과 달랐어요/);
-});
-
-test("feedback email failures do not fail accepted survey submissions", async () => {
-  const res = createRes();
-  const previousConsoleError = console.error;
-  console.error = () => {};
-
-  try {
-    await withFeedbackEnvironment(
-      {
-        RESEND_API_KEY: "re_test",
-        FEEDBACK_EMAIL_TO: "mokky@mokky.store",
-      },
-      async () => {
-        global.fetch = async () => ({ ok: false, status: 500, text: async () => "send failed" });
-        await feedback(createReq("POST", { satisfaction: "liked", mode: 20 }), res);
-      },
-    );
-  } finally {
-    console.error = previousConsoleError;
-  }
-
-  const body = res.json();
-  assert.equal(res.statusCode, 202);
-  assert.equal(body.ok, true);
-  assert.equal(body.stored, false);
-  assert.deepEqual(body.notification, { sent: false, provider: "resend", code: "email_failed" });
-});
-
 test("feedback rejects invalid satisfaction values", async () => {
   const res = createRes();
   await feedback(createReq("POST", { satisfaction: "maybe" }), res);
@@ -238,9 +158,6 @@ async function withFeedbackEnvironment(nextEnv, callback) {
     "SUPABASE_PUBLISHABLE_KEY",
     "SUPABASE_ANON_KEY",
     "SUPABASE_FEEDBACK_TABLE",
-    "RESEND_API_KEY",
-    "FEEDBACK_EMAIL_TO",
-    "FEEDBACK_EMAIL_FROM",
   ];
   const previousEnv = Object.fromEntries(envKeys.map((key) => [key, process.env[key]]));
   const previousFetch = global.fetch;
