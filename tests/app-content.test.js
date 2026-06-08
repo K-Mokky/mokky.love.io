@@ -493,6 +493,8 @@ test("result actions separate PNG saving from SNS link sharing", () => {
   assert.match(source, /fetch\("\/api\/share"/);
   assert.match(source, /image\/jpeg/);
   assert.match(source, /toDataURL\("image\/png"\)/);
+  assert.match(source, /navigator\.clipboard\.writeText\(shareUrl\)/);
+  assert.doesNotMatch(source, /navigator\.share/);
   assert.doesNotMatch(source, /shareStoryImage|shareInstagramStoryButton|shareFacebookStoryButton/);
   assert.match(placardFunctionSource, /내 이상형의 플랜카드/);
   assert.match(placardFunctionSource, /이상형의 타입/);
@@ -501,6 +503,65 @@ test("result actions separate PNG saving from SNS link sharing", () => {
   assert.match(placardLayoutSource, /height:\s*Math\.ceil/);
   assert.doesNotMatch(placardFunctionSource, /canvas\.height\s*=\s*2200/);
   assert.doesNotMatch(placardFunctionSource, /검사 결과는 어디에도 저장되지 않습니다/);
+});
+
+test("link sharing copies only the generated URL to the clipboard", async () => {
+  const context = loadApp();
+  const result = await vm.runInContext(
+    `(async () => {
+      const copied = [];
+      const requests = [];
+      navigator.share = async () => {
+        throw new Error("native share sheet should not be used for link-only copy");
+      };
+      navigator.clipboard = {
+        writeText: async (value) => copied.push(value),
+      };
+      globalThis.fetch = async (url, options) => {
+        requests.push({ url, body: JSON.parse(options.body) });
+        return {
+          ok: true,
+          json: async () => ({
+            ok: true,
+            shareUrl: "https://love.mokky.store/share/shares/20260608/p1234567890abcdef12345678.jpg",
+          }),
+        };
+      };
+      globalThis.FileReader = class {
+        addEventListener(name, handler) {
+          this[name] = handler;
+        }
+        readAsDataURL() {
+          this.result = "data:image/jpeg;base64,AA==";
+          this.load();
+        }
+      };
+      const button = { textContent: "나의 이상형 공유하기", disabled: false };
+      const canvas = {
+        toBlob(callback) {
+          callback(new Blob(["share"], { type: "image/jpeg" }));
+        },
+      };
+
+      const outcome = await shareCanvasLink({
+        canvas,
+        fallbackFilename: "fallback.png",
+        title: "나의 이상형",
+        text: "내 이상형 사진을 확인하고 직접 테스트해보세요.",
+        kind: "portrait",
+        button,
+      });
+
+      return { outcome, copiedText: copied.join("\\n"), requestBody: requests[0].body };
+    })()`,
+    context,
+  );
+
+  assert.equal(result.outcome, "copied");
+  assert.equal(result.copiedText, "https://love.mokky.store/share/shares/20260608/p1234567890abcdef12345678.jpg");
+  assert.doesNotMatch(result.copiedText, /나의 이상형|테스트|확인|찾아/);
+  assert.equal(result.requestBody.title, "나의 이상형");
+  assert.equal(result.requestBody.description, "내 이상형 사진을 확인하고 직접 테스트해보세요.");
 });
 
 test("start notice blocks the quiz until the user confirms", () => {

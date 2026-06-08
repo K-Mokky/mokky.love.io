@@ -3439,10 +3439,8 @@ async function shareResultLink(config) {
   setStoryShareStatus(`${config.label} 공유 링크를 생성하는 중이에요.`);
   const outcome = await shareCanvasLink(config);
 
-  if (outcome === "shared") {
-    setStoryShareStatus("공유 시트가 열렸어요. 인스타그램/페이스북이 보이지 않으면 링크를 복사해 앱에 붙여넣어 주세요.");
-  } else if (outcome === "copied") {
-    setStoryShareStatus(`${config.label} 공유 링크가 복사됐어요. 원하는 SNS 앱에 붙여넣어 주세요.`);
+  if (outcome === "copied") {
+    setStoryShareStatus(`${config.label} 공유 링크가 복사됐어요. 복사한 링크를 SNS에 공유해보세요!`);
   } else if (outcome === "downloaded") {
     setStoryShareStatus("공유 링크 생성에 실패해 PNG 파일로 저장했어요. 잠시 뒤 다시 시도해 주세요.");
   } else {
@@ -3473,25 +3471,7 @@ async function shareCanvasLink({ canvas, fallbackFilename, title, text, kind, bu
     const blob = await canvasToBlob(canvas, "image/jpeg", 0.9);
     const share = await createShareLink({ blob, title, text, kind });
 
-    if (navigator.share) {
-      try {
-        await navigator.share({ title, text, url: share.shareUrl });
-        button.textContent = "공유 완료";
-        outcome = "shared";
-      } catch (shareError) {
-        if (shareError?.name !== "AbortError") {
-          console.warn("Native share sheet did not complete; falling back to copied link:", shareError);
-        }
-        if (await copyShareLink(share.shareUrl)) {
-          button.textContent = "링크 복사됨";
-          outcome = "copied";
-        } else {
-          promptShareLink(share.shareUrl);
-          button.textContent = "링크 준비됨";
-          outcome = "copied";
-        }
-      }
-    } else if (await copyShareLink(share.shareUrl)) {
+    if (await copyShareLink(share.shareUrl)) {
       button.textContent = "링크 복사됨";
       outcome = "copied";
     } else {
