@@ -154,7 +154,7 @@ function pick(label, scores) {
 }
 
 const appearanceCategory = "외모 취향";
-const portraitAppearanceWeight = 0.5;
+const portraitAppearanceWeight = 0.75;
 const targetAppearanceQuestionShare = 0.5;
 const quizModes = [20, 50, 80];
 
@@ -1924,7 +1924,8 @@ function rememberCurrentQuestionOrder() {
 }
 
 function activeQuestions() {
-  if (state.questionOrder.length !== state.mode) {
+  const questions = state.questionOrder.map((id) => questionMap.get(id)).filter(Boolean);
+  if (questions.length !== state.mode || hasDuplicateQuestions(questions)) {
     prepareQuestionRun();
   }
 
@@ -1961,9 +1962,30 @@ function prepareQuestionRun() {
     });
   }
 
-  state.questionOrder = interleaveQuestionPools(selectedAppearance, selectedNonAppearance)
-    .slice(0, state.mode)
+  const orderedSelection = interleaveQuestionPools(selectedAppearance, selectedNonAppearance);
+  const fallbackSelection = [...appearanceQuestions, ...nonAppearanceQuestions, ...questionBank];
+  state.questionOrder = takeUniqueQuestions([...orderedSelection, ...fallbackSelection], state.mode)
     .map((question) => question.id);
+}
+
+function takeUniqueQuestions(questions, limit = questions.length) {
+  const seenIds = new Set();
+  const seenTexts = new Set();
+  const unique = [];
+
+  for (const question of questions) {
+    if (!question || seenIds.has(question.id) || seenTexts.has(question.text)) continue;
+    seenIds.add(question.id);
+    seenTexts.add(question.text);
+    unique.push(question);
+    if (unique.length >= limit) break;
+  }
+
+  return unique;
+}
+
+function hasDuplicateQuestions(questions) {
+  return takeUniqueQuestions(questions).length !== questions.length;
 }
 
 function shuffleQuestions(questions) {

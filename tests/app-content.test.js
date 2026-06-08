@@ -191,6 +191,27 @@ test("question history avoids repeat prompts until the full bank is used", () =>
   assert.equal(result.seenCount, 80);
 });
 
+test("active quiz questions recover from duplicate order entries", () => {
+  const context = loadApp();
+  const result = vm.runInContext(
+    `(() => {
+      setMode(20);
+      state.questionOrder = [state.questionOrder[0], ...state.questionOrder.slice(0, 19)];
+      const questions = activeQuestions();
+      return {
+        length: questions.length,
+        uniqueIds: new Set(questions.map((question) => question.id)).size,
+        uniqueTexts: new Set(questions.map((question) => question.text)).size,
+      };
+    })()`,
+    context,
+  );
+
+  assert.equal(result.length, 20);
+  assert.equal(result.uniqueIds, 20);
+  assert.equal(result.uniqueTexts, 20);
+});
+
 test("Gemini copy prompt pins a youthful 20s age range", () => {
   const context = loadApp();
   const prompt = vm.runInContext(
@@ -254,7 +275,7 @@ test("portrait asset selection uses the winning trait and one of five WebP varia
   assert.equal(selected.src, "/assets/portraits-webp/adventure/man/30s/005.webp");
 });
 
-test("portrait scoring blends appearance and relationship answers at 50% each", () => {
+test("portrait scoring blends appearance answers at 75% and relationship answers at 25%", () => {
   const context = loadApp();
   const result = vm.runInContext(
     `(() => {
@@ -283,11 +304,11 @@ test("portrait scoring blends appearance and relationship answers at 50% each", 
     context,
   );
 
-  assert.equal(result.weight, 0.5);
-  assert.equal(result.aesthetics, 0.3);
-  assert.equal(result.independence, 0.2);
-  assert.equal(result.warmth, 0.3);
-  assert.equal(result.steadiness, 0.2);
+  assert.equal(result.weight, 0.75);
+  assert.equal(Number(result.aesthetics.toFixed(2)), 0.45);
+  assert.equal(Number(result.independence.toFixed(2)), 0.3);
+  assert.equal(Number(result.warmth.toFixed(2)), 0.15);
+  assert.equal(Number(result.steadiness.toFixed(2)), 0.1);
 });
 
 test("result copy and trait meters use per-trait 100-point percentages", () => {
@@ -335,7 +356,8 @@ test("result copy and trait meters use per-trait 100-point percentages", () => {
   assert.equal(result.percentSum > 100, true);
   assert.equal(result.renderedTraitCount, 10);
   assert.equal(result.summary.length > 650, true);
-  assert.match(result.summary, /외모 취향 50%/);
+  assert.match(result.summary, /외모 취향 75%/);
+  assert.match(result.summary, /관계 성향 25%/);
   assert.match(result.summary, /각 성향 100% 기준/);
   assert.doesNotMatch(result.summary, /서로 더해 100%가 되지 않아도 정상/);
   assert.doesNotMatch(result.summary, /모든 성향을 합쳐 100%/);
