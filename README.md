@@ -78,7 +78,7 @@ SUPABASE_SHARE_BUCKET=ideal-type-shares
 현재 앱은 공유 이미지 업로드에도 기존 Supabase 연결 값을 재사용합니다.
 
 ```text
-SUPABASE_URL=https://vvqpajzjkcqxpvsptqvr.supabase.co
+SUPABASE_URL=https://<YOUR_PROJECT_REF>.supabase.co
 SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
 ```
 
@@ -88,7 +88,7 @@ SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
 
 Supabase Dashboard에서 직접 볼 수 있습니다.
 
-1. Supabase 프로젝트 `vvqpajzjkcqxpvsptqvr` 열기
+1. Supabase 프로젝트 `<YOUR_PROJECT_REF>` 열기
 2. 왼쪽 메뉴 `Storage` 선택
 3. `ideal-type-shares` 버킷 선택
 4. `shares/YYYYMMDD/` 폴더에서 생성된 공유 이미지 확인
@@ -104,10 +104,10 @@ Supabase Dashboard에서 직접 볼 수 있습니다.
 1. `FEEDBACK_WEBHOOK_URL`: 설문 payload를 외부 webhook으로 전달
 2. `SUPABASE_URL` + Supabase API key: Supabase REST API로 저장
 
-이 프로젝트의 Supabase URL:
+이 프로젝트의 Supabase URL은 Vercel 환경변수 `SUPABASE_URL`로만 주입하세요. 저장소에는 실제 프로젝트 ref를 적지 않습니다.
 
 ```text
-SUPABASE_URL=https://vvqpajzjkcqxpvsptqvr.supabase.co
+SUPABASE_URL=https://<YOUR_PROJECT_REF>.supabase.co
 ```
 
 Supabase key는 아래 중 하나를 Vercel 환경변수로 설정하면 됩니다.
@@ -141,7 +141,7 @@ create table public.ideal_type_feedback (
 
 Supabase Dashboard에서 직접 볼 수 있습니다.
 
-1. Supabase 프로젝트 `vvqpajzjkcqxpvsptqvr` 열기
+1. Supabase 프로젝트 `<YOUR_PROJECT_REF>` 열기
 2. 왼쪽 메뉴 `Table Editor` 선택
 3. `public` 스키마의 `ideal_type_feedback` 테이블 선택
 4. 최신 응답은 `created_at` 기준으로 확인

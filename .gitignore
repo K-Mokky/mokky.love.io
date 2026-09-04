@@ -2,3 +2,9 @@
 assets/portraits-sample/
 .vercel
 TossInApp/
+.gjc/
+.env
+.env.*
+!.env.example
+*.pem
+*.key
